@@ -1,0 +1,34 @@
+function findDuplicateRows() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = sheet.getDataRange().getValues();
+  var numRows = data.length;
+  var numCols = data[0].length;
+  var duplicates = new Set();
+
+  for (var i = 1; i < numRows; i++) { // Skip header row
+    var rowString = data[i].join('|');
+    for (var j = i + 1; j < numRows; j++) {
+      if (rowString === data[j].join('|')) {
+        duplicates.add(i + 1); // Store row numbers (1-based index)
+        duplicates.add(j + 1);
+      }
+    }
+  }
+  
+  var range = sheet.getRange(2, 1, numRows - 1, numCols);
+  var backgroundColors = range.getBackgrounds();
+  
+  duplicates.forEach(rowNum => {
+    for (var col = 0; col < numCols; col++) {
+      backgroundColors[rowNum - 2][col] = "#FFCCCC"; // Highlight in red
+    }
+  });
+  
+  range.setBackgrounds(backgroundColors);
+  
+  if (duplicates.size > 0) {
+    SpreadsheetApp.getUi().alert("Duplicate rows highlighted.");
+  } else {
+    SpreadsheetApp.getUi().alert("No duplicate rows found.");
+  }
+}
