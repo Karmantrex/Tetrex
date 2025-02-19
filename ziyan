@@ -1,50 +1,44 @@
-function compareTwoColumnsForDuplicates() {
+function checkProdInAccountName() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
+  var accountNameIndex = headers.indexOf("accountName");
   
-  var firstColumnName = Browser.inputBox("Enter the first column name:");
-  var secondColumnName = Browser.inputBox("Enter the second column name:");
-  
-  var firstColumnIndex = headers.indexOf(firstColumnName);
-  var secondColumnIndex = headers.indexOf(secondColumnName);
-  
-  if (firstColumnIndex === -1 || secondColumnIndex === -1) {
-    Browser.msgBox("One or both column names not found. Exiting script.");
+  if (accountNameIndex === -1) {
+    Browser.msgBox("Column 'accountName' not found. Exiting script.");
     return;
   }
   
-  var duplicates = [];
+  var nonProdRows = [];
+  var prodPattern = /\b(prod|prd)\b/i; // Case-insensitive match for 'prod' or 'prd'
   
   for (var i = 1; i < data.length; i++) { // Skip header row
-    for (var j = i + 1; j < data.length; j++) {
-      if (data[i][firstColumnIndex] === data[j][secondColumnIndex]) {
-        duplicates.push(data[i]);
-        duplicates.push(data[j]);
-      }
+    var accountName = data[i][accountNameIndex];
+    if (!prodPattern.test(accountName)) {
+      nonProdRows.push(data[i]);
     }
   }
   
-  if (duplicates.length > 0) {
-    moveDuplicatesToNewSheet(headers, duplicates);
-    Browser.msgBox("Matching rows copied to 'Duplicate_rows' sheet.");
+  if (nonProdRows.length > 0) {
+    moveNonProdRowsToNewSheet(headers, nonProdRows);
+    Browser.msgBox("Non-prod environment names copied to 'new_prd_env_name' sheet.");
   } else {
-    Browser.msgBox("No matching rows found.");
+    Browser.msgBox("No new prod env name.");
   }
 }
 
-function moveDuplicatesToNewSheet(headers, duplicateRows) {
+function moveNonProdRowsToNewSheet(headers, nonProdRows) {
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = spreadsheet.getSheetByName("Duplicate_rows");
+  var sheet = spreadsheet.getSheetByName("new_prd_env_name");
   
   if (sheet) {
     spreadsheet.deleteSheet(sheet);
   }
   
-  sheet = spreadsheet.insertSheet("Duplicate_rows");
+  sheet = spreadsheet.insertSheet("new_prd_env_name");
   sheet.appendRow(headers);
   
-  if (duplicateRows.length > 0) {
-    sheet.getRange(2, 1, duplicateRows.length, duplicateRows[0].length).setValues(duplicateRows);
+  if (nonProdRows.length > 0) {
+    sheet.getRange(2, 1, nonProdRows.length, nonProdRows[0].length).setValues(nonProdRows);
   }
 }
