@@ -1,1 +1,7 @@
-make_col group_index:int64(window(row_number(), group_by(^group...)) % 4)
+GroupMinSize
+GroupMaxSize
+GroupDesiredCapacity
+GroupInServiceInstances
+GroupPendingInstances
+GroupTerminatingInstances
+GroupTotalInstances
