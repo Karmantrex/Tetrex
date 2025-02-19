@@ -1,46 +1,35 @@
-function findDuplicateRowsByColumns() {
+function compareTwoColumnsForDuplicates() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
   var headers = data[0];
-  var selectedColumns = [];
   
-  while (true) {
-    var columnName = Browser.inputBox("Enter column name to check for duplicates or type 'finish' to proceed:");
-    if (columnName.toLowerCase() === 'finish') {
-      break;
-    }
-    var colIndex = headers.indexOf(columnName);
-    if (colIndex === -1) {
-      Browser.msgBox("Column not found: " + columnName);
-    } else {
-      selectedColumns.push(colIndex);
-    }
-  }
+  var firstColumnName = Browser.inputBox("Enter the first column name:");
+  var secondColumnName = Browser.inputBox("Enter the second column name:");
   
-  if (selectedColumns.length === 0) {
-    Browser.msgBox("No columns selected. Exiting script.");
+  var firstColumnIndex = headers.indexOf(firstColumnName);
+  var secondColumnIndex = headers.indexOf(secondColumnName);
+  
+  if (firstColumnIndex === -1 || secondColumnIndex === -1) {
+    Browser.msgBox("One or both column names not found. Exiting script.");
     return;
   }
   
-  var duplicates = new Set();
-  var duplicateRows = [];
+  var duplicates = [];
   
   for (var i = 1; i < data.length; i++) { // Skip header row
-    var rowKey = selectedColumns.map(idx => data[i][idx]).join('|');
     for (var j = i + 1; j < data.length; j++) {
-      if (rowKey === selectedColumns.map(idx => data[j][idx]).join('|')) {
-        duplicates.add(i);
-        duplicates.add(j);
-        duplicateRows.push(data[i]);
+      if (data[i][firstColumnIndex] === data[j][secondColumnIndex]) {
+        duplicates.push(data[i]);
+        duplicates.push(data[j]);
       }
     }
   }
   
-  if (duplicates.size > 0) {
-    moveDuplicatesToNewSheet(headers, duplicateRows);
-    Browser.msgBox("Duplicate rows copied to 'Duplicate_rows' sheet.");
+  if (duplicates.length > 0) {
+    moveDuplicatesToNewSheet(headers, duplicates);
+    Browser.msgBox("Matching rows copied to 'Duplicate_rows' sheet.");
   } else {
-    Browser.msgBox("No duplicate rows found.");
+    Browser.msgBox("No matching rows found.");
   }
 }
 
