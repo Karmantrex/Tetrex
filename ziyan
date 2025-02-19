@@ -1,44 +1,5 @@
-function checkProdInAccountName() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var data = sheet.getDataRange().getValues();
-  var headers = data[0];
-  var accountNameIndex = headers.indexOf("accountName");
-  
-  if (accountNameIndex === -1) {
-    Browser.msgBox("Column 'accountName' not found. Exiting script.");
-    return;
-  }
-  
-  var nonProdRows = [];
-  var prodPattern = /\b(prod|prd)\b/i; // Case-insensitive match for 'prod' or 'prd'
-  
-  for (var i = 1; i < data.length; i++) { // Skip header row
-    var accountName = data[i][accountNameIndex];
-    if (!prodPattern.test(accountName)) {
-      nonProdRows.push(data[i]);
-    }
-  }
-  
-  if (nonProdRows.length > 0) {
-    moveNonProdRowsToNewSheet(headers, nonProdRows);
-    Browser.msgBox("Non-prod environment names copied to 'new_prd_env_name' sheet.");
-  } else {
-    Browser.msgBox("No new prod env name.");
-  }
-}
-
-function moveNonProdRowsToNewSheet(headers, nonProdRows) {
-  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = spreadsheet.getSheetByName("new_prd_env_name");
-  
-  if (sheet) {
-    spreadsheet.deleteSheet(sheet);
-  }
-  
-  sheet = spreadsheet.insertSheet("new_prd_env_name");
-  sheet.appendRow(headers);
-  
-  if (nonProdRows.length > 0) {
-    sheet.getRange(2, 1, nonProdRows.length, nonProdRows[0].length).setValues(nonProdRows);
-  }
-}
+statsby 
+    min_value:min(value_no_zero), 
+    max_value:max(value), 
+    metrics:array_agg(metric, order_by(metric, false)), 
+    group_by(^group..., metric)
