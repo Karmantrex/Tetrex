@@ -1,27 +1,46 @@
-function findDuplicateRows() {
+function findDuplicateRowsByColumns() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
-  var numRows = data.length;
-  var numCols = data[0].length;
+  var headers = data[0];
+  var selectedColumns = [];
+  
+  while (true) {
+    var columnName = Browser.inputBox("Enter column name to check for duplicates or type 'finish' to proceed:");
+    if (columnName.toLowerCase() === 'finish') {
+      break;
+    }
+    var colIndex = headers.indexOf(columnName);
+    if (colIndex === -1) {
+      Browser.msgBox("Column not found: " + columnName);
+    } else {
+      selectedColumns.push(colIndex);
+    }
+  }
+  
+  if (selectedColumns.length === 0) {
+    Browser.msgBox("No columns selected. Exiting script.");
+    return;
+  }
+  
   var duplicates = new Set();
   var duplicateRows = [];
-
-  for (var i = 1; i < numRows; i++) { // Skip header row
-    var rowString = data[i].join('|');
-    for (var j = i + 1; j < numRows; j++) {
-      if (rowString === data[j].join('|')) {
-        duplicates.add(i + 1); // Store row numbers (1-based index)
-        duplicates.add(j + 1);
+  
+  for (var i = 1; i < data.length; i++) { // Skip header row
+    var rowKey = selectedColumns.map(idx => data[i][idx]).join('|');
+    for (var j = i + 1; j < data.length; j++) {
+      if (rowKey === selectedColumns.map(idx => data[j][idx]).join('|')) {
+        duplicates.add(i);
+        duplicates.add(j);
         duplicateRows.push(data[i]);
       }
     }
   }
   
   if (duplicates.size > 0) {
-    moveDuplicatesToNewSheet(data[0], duplicateRows);
-    SpreadsheetApp.getUi().alert("Duplicate rows copied to 'Duplicate_rows' sheet.");
+    moveDuplicatesToNewSheet(headers, duplicateRows);
+    Browser.msgBox("Duplicate rows copied to 'Duplicate_rows' sheet.");
   } else {
-    SpreadsheetApp.getUi().alert("No duplicate rows found.");
+    Browser.msgBox("No duplicate rows found.");
   }
 }
 
