@@ -1,7 +1,1 @@
-// Add a group index for conditional formatting
-make_col group_index:(row_number(group_by(^group...)) % 4)
-
-statsby 
-    min_value:min(value_no_zero, ignore_nulls=true), 
-    max_value:max(value), 
-    group_by(^group..., metric, group_index)
+make_col group_index:int64(window(row_number(), group_by(^group...)) % 4)
