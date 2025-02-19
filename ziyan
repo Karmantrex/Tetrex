@@ -4,6 +4,7 @@ function findDuplicateRows() {
   var numRows = data.length;
   var numCols = data[0].length;
   var duplicates = new Set();
+  var duplicateRows = [];
 
   for (var i = 1; i < numRows; i++) { // Skip header row
     var rowString = data[i].join('|');
@@ -11,24 +12,31 @@ function findDuplicateRows() {
       if (rowString === data[j].join('|')) {
         duplicates.add(i + 1); // Store row numbers (1-based index)
         duplicates.add(j + 1);
+        duplicateRows.push(data[i]);
       }
     }
   }
   
-  var range = sheet.getRange(2, 1, numRows - 1, numCols);
-  var backgroundColors = range.getBackgrounds();
-  
-  duplicates.forEach(rowNum => {
-    for (var col = 0; col < numCols; col++) {
-      backgroundColors[rowNum - 2][col] = "#FFCCCC"; // Highlight in red
-    }
-  });
-  
-  range.setBackgrounds(backgroundColors);
-  
   if (duplicates.size > 0) {
-    SpreadsheetApp.getUi().alert("Duplicate rows highlighted.");
+    moveDuplicatesToNewSheet(data[0], duplicateRows);
+    SpreadsheetApp.getUi().alert("Duplicate rows copied to 'Duplicate_rows' sheet.");
   } else {
     SpreadsheetApp.getUi().alert("No duplicate rows found.");
+  }
+}
+
+function moveDuplicatesToNewSheet(headers, duplicateRows) {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = spreadsheet.getSheetByName("Duplicate_rows");
+  
+  if (sheet) {
+    spreadsheet.deleteSheet(sheet);
+  }
+  
+  sheet = spreadsheet.insertSheet("Duplicate_rows");
+  sheet.appendRow(headers);
+  
+  if (duplicateRows.length > 0) {
+    sheet.getRange(2, 1, duplicateRows.length, duplicateRows[0].length).setValues(duplicateRows);
   }
 }
