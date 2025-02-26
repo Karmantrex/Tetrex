@@ -1,7 +1,1 @@
-GroupMinSize
-GroupMaxSize
-GroupDesiredCapacity
-GroupInServiceInstances
-GroupPendingInstances
-GroupTerminatingInstances
-GroupTotalInstances
+filter match_regex(label(^Account), regex($asg_name, 'i'))
