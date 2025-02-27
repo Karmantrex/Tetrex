@@ -1,13 +1,4 @@
-filter match_regex(label(^Account), /prod|prd/i)
-
-// Check if $asg_name is set, if not, select all ASGs
-filter if (is_null($asg_name) or $asg_name = "", true, in(label(^group), split($asg_name, ",")))
-
-filter metric ~ /GroupDesiredCapacity|GroupMinSize|GroupInServiceInstances/
-
-make_col value_no_zero:case(value > 0, value, true, float64_null())
-
-statsby 
-    min_value:min(value_no_zero),
-    max_value:max(value),
-    group_by(^group..., metric)
+filter if(is_null($Enter_ASG_name) or $Enter_ASG_name = "", 
+    true, 
+    in(label(^group), split($Enter_ASG_name, ","))
+)
