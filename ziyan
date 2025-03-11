@@ -1,12 +1,29 @@
-I'm trying to filter multiple ASGs using a multi-value dropdown in my dashboard. My $Enter_ASG_name parameter is set as an array (e.g., ["asg-1", "asg-2", "asg-3"]), and I'm using the following query:
+# 1️⃣ Download Miniconda installer for Mac (Intel)
+curl -o miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
 
+# 2️⃣ Run the Miniconda installer
+bash miniconda.sh
 
-Issue:
+# 3️⃣ Activate Miniconda
+source ~/miniconda3/bin/activate
 
-When I select multiple ASGs in the dropdown, the query returns "Not Found" instead of showing results for all selected ASGs.
-If I select only one ASG, it works fine.
-If I leave it empty, it correctly shows all ASGs.
-What I need:
+# 4️⃣ Initialize Conda for Zsh (Mac default shell)
+conda init zsh
 
-Ensure that multiple ASGs can be selected in the dropdown and the query correctly returns data for all selected ASGs.
-If no ASG is selected, it should return results for all ASGs.
+# 5️⃣ Restart your terminal, then check Conda version
+conda --version
+
+# 6️⃣ Verify where Conda is installed
+which conda
+
+# 7️⃣ Check Conda environments
+conda info --envs
+
+# 8️⃣ Create a new test Conda environment with Python 3.9
+conda create --name test_env python=3.9
+
+# 9️⃣ Activate the new environment
+conda activate test_env
+
+# 🔟 Install a test package (numpy)
+conda install numpy
