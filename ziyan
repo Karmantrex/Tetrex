@@ -5,3 +5,6 @@ WkdNtZaqEjLjE
 NsnJSDsmmshHD
 FcSmswozEs
 FcgRfgsIKsgsffgs
+
+If you want to see how much total grace period is applied to all instances in an account → Use SUM.
+If you want to see the typical health check grace period per instance in an account → Use AVERAGE (Recommended).
