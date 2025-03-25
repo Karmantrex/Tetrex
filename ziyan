@@ -1,10 +1,13 @@
-7TESUCUSGYR8GHCVJD7
-A3NU2CRN9B275GWBF8DZ
-YtblskDsmsW
-WkdNtZaqEjLjE
-NsnJSDsmmshHD
-FcSmswozEs
-FcgRfgsIKsgsffgs
+#!/bin/bash
 
-If you want to see how much total grace period is applied to all instances in an account → Use SUM.
-If you want to see the typical health check grace period per instance in an account → Use AVERAGE (Recommended).
+if [ "$#" -eq 0 ]; then
+  echo "Usage: $0 <path1> <path2> ... <pathN>"
+  exit 1
+fi
+
+for path in "$@"; do
+  echo "Deleting: $path"
+  sudo rm -rf "$path"
+done
+
+echo "Done. All specified FocusMe files (if found) should now be gone."
