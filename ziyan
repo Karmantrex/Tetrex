@@ -7,16 +7,22 @@ fi
 
 echo "Starting cleanup using: $1"
 
-while IFS= read -r line || [[ -n "$line" ]]; do
-  # Expand $HOME and other variables
-  eval expanded_path="$line"
+while IFS= read -r raw_path || [[ -n "$raw_path" ]]; do
+  # Skip empty lines
+  [[ -z "$raw_path" ]] && continue
 
-  # Skip if the file is the script itself or the path list
+  # Auto-quote paths with spaces
+  quoted_path=$(printf "%q" "$raw_path")
+
+  # Expand things like $HOME and tilde (~)
+  eval expanded_path="$quoted_path"
+
+  # Skip if it's the script itself or the path file
   script_name="$(basename "$0")"
-  path_list_name="$(basename "$1")"
-  base_path="$(basename "$expanded_path")"
+  path_file_name="$(basename "$1")"
+  base_expanded="$(basename "$expanded_path")"
 
-  if [[ "$base_path" == "$script_name" || "$base_path" == "$path_list_name" ]]; then
+  if [[ "$base_expanded" == "$script_name" || "$base_expanded" == "$path_file_name" ]]; then
     echo "Skipping self: $expanded_path"
     continue
   fi
@@ -29,4 +35,4 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   fi
 done < "$1"
 
-echo "✅ Done. FocusMe junk should now be gone."
+echo "✅ Done. No more FocusMe leftovers — hopefully for good!"
