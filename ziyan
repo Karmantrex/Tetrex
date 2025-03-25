@@ -1,1 +1,3 @@
-xattr -d com.apple.quarantine /Applications/FocusMe.app
+mkdir -p ~/Applications
+cp -R /Applications/FocusMe.app ~/Applications/
+xattr -rd com.apple.quarantine ~/Applications/FocusMe.app
