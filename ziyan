@@ -22,10 +22,13 @@ log_message() {
     local timestamp
     timestamp=$(date "+%Y-%m-%d %H:%M:%S")
 
-    # Rotate log file if size exceeds limit
-    if [ -f "$LOG_FILE" ] && [ $(stat -f%z "$LOG_FILE") -ge $MAX_LOG_SIZE ]; then
-        mv "$LOG_FILE" "${LOG_FILE}.1"
-        gzip -f "${LOG_FILE}.1"
+    if [ -f "$LOG_FILE" ]; then
+        local log_size
+        log_size=$(stat -f "%z" "$LOG_FILE")
+        if [ "$log_size" -ge "$MAX_LOG_SIZE" ]; then
+            mv "$LOG_FILE" "${LOG_FILE}.1"
+            gzip -f "${LOG_FILE}.1"
+        fi
     fi
 
     echo "[${timestamp}] [${level}] ${message}" >> "$LOG_FILE"
