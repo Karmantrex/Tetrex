@@ -21,10 +21,10 @@ log_message() {
     local timestamp
     timestamp=$(date "+%Y-%m-%d %H:%M:%S")
 
-    if [ -f "$LOG_FILE" ]; then
+    if [[ -f "$LOG_FILE" ]]; then
         local log_size
         log_size=$(stat -f "%z" "$LOG_FILE")
-        if [ "$log_size" -ge "$MAX_LOG_SIZE" ]; then
+        if [[ "$log_size" -ge "$MAX_LOG_SIZE" ]]; then
             mv "$LOG_FILE" "${LOG_FILE}.1"
             gzip -f "${LOG_FILE}.1"
         fi
@@ -39,7 +39,7 @@ validate_password() {
     local password="$1"
     local length=${#password}
 
-    if [ "$length" -lt "$MIN_PASSWORD_LENGTH" ]; then
+    if [[ "$length" -lt "$MIN_PASSWORD_LENGTH" ]]; then
         log_message "ERROR" "Password too short. Minimum ${MIN_PASSWORD_LENGTH} characters required."
         return 1
     fi
@@ -60,9 +60,8 @@ setup_password() {
     local password=""
     local attempts=3
 
-    while [ $attempts -gt 0 ]; do
-        echo -n "Set a secure password (min ${MIN_PASSWORD_LENGTH} chars): "
-        read -s password
+    while [[ $attempts -gt 0 ]]; do
+        read -sp "Set a secure password (min ${MIN_PASSWORD_LENGTH} chars): " password
         echo
 
         if validate_password "$password"; then
@@ -86,9 +85,8 @@ verify_password() {
     local decrypted_pass=""
     local attempts=3
 
-    while [ $attempts -gt 0 ]; do
-        echo -n "Enter password to delete script: "
-        read -s user_pass
+    while [[ $attempts -gt 0 ]]; do
+        read -sp "Enter password to delete script: " user_pass
         echo
 
         if decrypted_pass=$(echo "$user_pass" | openssl enc -aes-256-cbc -pbkdf2 -iter 10000 -salt -d -in "$PASSWORD_FILE" 2>/dev/null); then
@@ -125,11 +123,11 @@ validate_system() {
 main() {
     validate_system
 
-    if [ ! -f "$PASSWORD_FILE" ]; then
+    if [[ ! -f "$PASSWORD_FILE" ]]; then
         setup_password
     fi
 
-    if [ "${1:-}" = "delete" ]; then
+    if [[ "${1:-}" = "delete" ]]; then
         verify_password
         exit 0
     fi
@@ -147,7 +145,7 @@ main() {
             local active_app=""
             active_app=$(osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true')
 
-            if [ "$active_app" != "$EXCLUDED_APP" ]; then
+            if [[ "$active_app" != "$EXCLUDED_APP" ]]; then
                 osascript <<EOF
 tell application "System Events"
     keystroke space using {command down}
@@ -163,7 +161,7 @@ EOF
             fi
         fi
 
-        if [ $sleep_time -lt $max_sleep_time ]; then
+        if [[ $sleep_time -lt $max_sleep_time ]]; then
             sleep_time=$((sleep_time * 2))
         fi
     done
