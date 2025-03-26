@@ -47,7 +47,7 @@ validate_password() {
     if ! [[ "$password" =~ [A-Z] ]] || \
        ! [[ "$password" =~ [a-z] ]] || \
        ! [[ "$password" =~ [0-9] ]] || \
-       ! [[ "$password" =~ [!@#$%^&*()_+] ]]; then
+       ! [[ "$password" =~ [\!\@\#\$\%\^\&\*\(\)_\+] ]]; then
         log_message "ERROR" "Password must contain uppercase, lowercase, number, and special character."
         return 1
     fi
@@ -90,7 +90,6 @@ verify_password() {
         echo
 
         if decrypted_pass=$(echo "$user_pass" | openssl enc -aes-256-cbc -pbkdf2 -iter 10000 -salt -d -in "$PASSWORD_FILE" 2>/dev/null); then
-            # Using gshred from GNU coreutils for secure deletion
             gshred -u "$SCRIPT_PATH" "$PASSWORD_FILE" "$LAUNCH_AGENT_PLIST" 2>/dev/null
             launchctl unload "$LAUNCH_AGENT_PLIST" &>/dev/null
             log_message "INFO" "Script and associated files deleted successfully."
