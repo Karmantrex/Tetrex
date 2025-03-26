@@ -15,8 +15,8 @@ readonly MIN_PASSWORD_LENGTH=12
 readonly LOG_FILE="${HOME_DIR}/.focus_monitor.log"
 readonly MAX_LOG_SIZE=$((5 * 1024 * 1024)) # 5 MB
 
-# Prompt for password if someone tries to view the script
-if [[ "$0" == "$SCRIPT_PATH" && -z "${1:-}" ]]; then
+# Prompt for password if someone tries to view the script (only if password file exists)
+if [[ "$0" == "$SCRIPT_PATH" && -z "${1:-}" && -f "$PASSWORD_FILE" ]]; then
   echo -n "Enter password to execute: "
   read -s pw
   echo
