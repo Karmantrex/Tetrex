@@ -1,7 +1,6 @@
 #!/bin/bash
-# Enhanced Focus Monitoring Script
+# Enhanced Focus Monitoring Script for macOS
 
-# Strict error handling
 set -euo pipefail
 
 # Configuration
@@ -13,9 +12,9 @@ readonly SCRIPT_PATH="${HOME_DIR}/.focus_monitor.sh"
 readonly LAUNCH_AGENT_PLIST="${HOME_DIR}/Library/LaunchAgents/com.user.focusmonitor.plist"
 readonly MIN_PASSWORD_LENGTH=12
 readonly LOG_FILE="${HOME_DIR}/.focus_monitor.log"
-readonly MAX_LOG_SIZE=$((5 * 1024 * 1024))  # 5 MB
+readonly MAX_LOG_SIZE=$((5 * 1024 * 1024)) # 5 MB
 
-# Logging function with rotation
+# Logging function with rotation for macOS
 log_message() {
     local level="$1"
     local message="$2"
@@ -45,10 +44,9 @@ validate_password() {
         return 1
     fi
 
-    # Check for complexity
-    if ! [[ "$password" =~ [A-Z] ]] || 
-       ! [[ "$password" =~ [a-z] ]] || 
-       ! [[ "$password" =~ [0-9] ]] || 
+    if ! [[ "$password" =~ [A-Z] ]] || \
+       ! [[ "$password" =~ [a-z] ]] || \
+       ! [[ "$password" =~ [0-9] ]] || \
        ! [[ "$password" =~ [!@#$%^&*()_+] ]]; then
         log_message "ERROR" "Password must contain uppercase, lowercase, number, and special character."
         return 1
@@ -57,13 +55,13 @@ validate_password() {
     return 0
 }
 
-# Function to prompt and encrypt password (first-time setup)
+# Prompt and encrypt password
 setup_password() {
     local password=""
     local attempts=3
 
     while [ $attempts -gt 0 ]; do
-        echo -n "Set a secure password to protect the script (min ${MIN_PASSWORD_LENGTH} chars): "
+        echo -n "Set a secure password (min ${MIN_PASSWORD_LENGTH} chars): "
         read -s password
         echo
 
@@ -82,7 +80,7 @@ setup_password() {
     exit 1
 }
 
-# Verify password to allow deletion
+# Verify password and allow deletion
 verify_password() {
     local user_pass=""
     local decrypted_pass=""
@@ -96,7 +94,6 @@ verify_password() {
         if decrypted_pass=$(echo "$user_pass" | openssl enc -aes-256-cbc -pbkdf2 -iter 10000 -salt -d -in "$PASSWORD_FILE" 2>/dev/null); then
             shred -u "$SCRIPT_PATH" "$PASSWORD_FILE" "$LAUNCH_AGENT_PLIST" 2>/dev/null
             launchctl unload "$LAUNCH_AGENT_PLIST" &>/dev/null
-
             log_message "INFO" "Script and associated files deleted successfully."
             return 0
         fi
@@ -109,9 +106,9 @@ verify_password() {
     exit 1
 }
 
-# Validate system requirements
+# Validate macOS and dependencies
 validate_system() {
-    for cmd in openssl osascript pgrep; do
+    for cmd in openssl osascript pgrep stat gzip; do
         if ! command -v "$cmd" &> /dev/null; then
             log_message "CRITICAL" "Required command $cmd not found."
             exit 1
@@ -124,7 +121,7 @@ validate_system() {
     fi
 }
 
-# Main monitoring loop with additional safety checks
+# Main monitoring loop
 main() {
     validate_system
 
@@ -151,7 +148,7 @@ main() {
             active_app=$(osascript -e 'tell application "System Events" to get name of first application process whose frontmost is true')
 
             if [ "$active_app" != "$EXCLUDED_APP" ]; then
-osascript <<EOF
+                osascript <<EOF
 tell application "System Events"
     keystroke space using {command down}
     delay 0.5
@@ -160,7 +157,9 @@ tell application "System Events"
     key code 36
 end tell
 EOF
-                log_message "INFO" "Attempted to launch Focus application."
+                log_message "INFO" "Attempted to launch Focus."
+            else
+                log_message "INFO" "Zoom active; delaying launch of Focus."
             fi
         fi
 
