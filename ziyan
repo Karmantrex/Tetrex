@@ -1,3 +1,1 @@
-mkdir -p ~/Applications
-cp -R /Applications/FocusMe.app ~/Applications/
-xattr -rd com.apple.quarantine ~/Applications/FocusMe.app
+NAME=focusme VERS=7 ID=685afbee980031d184111ad9710580a655b287b14d1b88f0f894609468051e8e IDTYPE=vendor EXPIRES=never CERT=cbabc3d49051b33d25199e46cad69d
