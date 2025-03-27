@@ -1,101 +1,20 @@
-#!/bin/bash
+ECS Service Scaling Metrics
+CPUUtilization
 
-APP_NAME="Focus"
-APP_PATH="/Applications/$APP_NAME.app"
-HASH_FILE="$HOME/.focus_guard_hash"
-PLIST_FILE="$HOME/Library/LaunchAgents/com.user.focusguard.plist"
-LOCKFILE="/tmp/.focus_guard.lock"
+MemoryUtilization
 
-# --- Password management ---
-set_password() {
-  echo "🔑 Set a new password:"
-  read -s pass1
-  echo "🔑 Confirm password:"
-  read -s pass2
-  if [ "$pass1" != "$pass2" ]; then
-    echo "❌ Passwords don't match. Try again."
-    exit 1
-  fi
-  echo -n "$pass1" | shasum -a 256 | awk '{print $1}' > "$HASH_FILE"
-  chmod 600 "$HASH_FILE"
-  echo "✅ Password set successfully."
-}
+DesiredTaskCount
 
-verify_password() {
-  echo "🔑 Enter your password:"
-  read -s input
-  input_hash=$(echo -n "$input" | shasum -a 256 | awk '{print $1}')
-  stored_hash=$(cat "$HASH_FILE")
-  if [ "$input_hash" != "$stored_hash" ]; then
-    echo "❌ Wrong password."
-    exit 1
-  fi
-}
+RunningTaskCount
 
-# --- Setup LaunchAgent ---
-setup_launch_agent() {
-cat <<EOF > "$PLIST_FILE"
-<?xml version="1.0" encoding="UTF-8"?>
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>com.user.focusguard</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/bash</string>
-    <string>$HOME/.focus_guard/focus_guard.sh</string>
-  </array>
-  <key>RunAtLoad</key>
-  <true/>
-  <key>KeepAlive</key>
-  <true/>
-</dict>
-</plist>
-EOF
-launchctl load "$PLIST_FILE"
-echo "✅ LaunchAgent installed. The app will start automatically at login."
-}
+PendingTaskCount
 
-# --- Uninstall function ---
-uninstall_guard() {
-  verify_password
-  launchctl unload "$PLIST_FILE" 2>/dev/null
-  rm -f "$PLIST_FILE" "$HASH_FILE" "$LOCKFILE"
-  rm -rf "$HOME/.focus_guard"
-  echo "🗑️ Successfully uninstalled Focus Guard."
-  exit 0
-}
+ALB-Related (for scaling based on load balancer metrics)
+RequestCountPerTarget
 
-# --- Main Guard Function ---
-run_guard() {
-  trap '' SIGINT SIGTERM SIGHUP
-  while true; do
-    if ! pgrep -f "$APP_PATH" >/dev/null; then
-      open -a "$APP_PATH"
-    fi
-    sleep 10
-  done
-}
+TargetResponseTime
 
-# --- Entry point ---
-mkdir -p "$HOME/.focus_guard"
+HealthyHostCount
 
-if [ "$1" == "uninstall" ]; then
-  uninstall_guard
-fi
+UnHealthyHostCount
 
-# Initial Setup
-if [ ! -f "$HASH_FILE" ]; then
-  set_password
-  setup_launch_agent
-fi
-
-# Prevent multiple instances
-if [ -f "$LOCKFILE" ]; then
-  echo "⚠️ Focus Guard is already running."
-  exit 0
-else
-  touch "$LOCKFILE"
-fi
-
-run_guard
