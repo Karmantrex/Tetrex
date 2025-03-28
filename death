@@ -1,1 +1,2 @@
 ls -l /bin/launchctl /usr/bin/launchctl /usr/sbin/launchctl
+cat ~/Library/LaunchAgents/com.user.focusmonitor.plist
