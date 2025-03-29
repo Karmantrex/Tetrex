@@ -1,20 +1,11 @@
-ECS Service Scaling Metrics
-CPUUtilization
+~/.focus_monitor.sh stop  
+sudo chflags nouchg ~/.focus_monitor.sh
+vi ~/.focus_monitor.sh
+# or
+nano ~/.focus_monitor.sh
+chmod 500 ~/.focus_monitor.sh
+sudo chflags uchg ~/.focus_monitor.sh
 
-MemoryUtilization
 
-DesiredTaskCount
 
-RunningTaskCount
-
-PendingTaskCount
-
-ALB-Related (for scaling based on load balancer metrics)
-RequestCountPerTarget
-
-TargetResponseTime
-
-HealthyHostCount
-
-UnHealthyHostCount
-
+ ~/.focus_monitor.sh start
