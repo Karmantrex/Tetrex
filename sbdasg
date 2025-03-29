@@ -1,0 +1,6 @@
+sudo chflags -R nouchg ~/.local/.focus_backup ~/.focus_monitor.sh
+sudo chmod -R u+rwx ~/.local/.focus_backup
+chmod 700 ~/.focus_monitor.sh
+sudo xattr -rc ~/.local/.focus_backup ~/.focus_monitor.sh
+sudo chmod -R u+rwx ~/.local/.focus_backup
+~/.focus_monitor.sh stop
