@@ -8,6 +8,8 @@ rm -f ~/Library/LaunchAgents/com.user.focuswatchdog.plist
 rm -f ~/.focus_watchdog.sh
 launchctl list | grep com.user.focuswatchdog
 
+If there is no output it means the watchdog is stopped
+
 
 Step 2: Unlock script and backups fully
 
