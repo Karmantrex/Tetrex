@@ -1,11 +1,10 @@
-~/.focus_monitor.sh stop  
-sudo chflags nouchg ~/.focus_monitor.sh
+~/.focus_monitor.sh stop
+launchctl unload ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+sudo chflags -R nouchg ~/.focus_monitor.sh ~/.local/.focus_backup
+chmod u+w ~/.focus_monitor.sh
 vi ~/.focus_monitor.sh
-# or
-nano ~/.focus_monitor.sh
 chmod 500 ~/.focus_monitor.sh
 sudo chflags uchg ~/.focus_monitor.sh
+launchctl load ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+~/.focus_monitor.sh start
 
-
-
- ~/.focus_monitor.sh start
