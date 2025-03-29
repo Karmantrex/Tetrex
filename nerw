@@ -1,0 +1,26 @@
+# Temporarily remove the immutable flag from backup files
+sudo chflags -R nouchg ~/.local/.focus_backup
+
+# Ensure backup folder and files are readable and executable
+sudo chmod -R u+rwx ~/.local/.focus_backup
+
+# Temporarily remove immutable flag from the script itself
+sudo chflags nouchg ~/.focus_monitor.sh
+
+# Ensure script itself has correct permissions
+chmod 500 ~/.focus_monitor.sh
+
+# Clear extended attributes on backup files and script
+sudo xattr -rc ~/.local/.focus_backup
+sudo xattr -rc ~/.focus_monitor.sh
+
+# After permissions and flags are fixed, stop the script safely
+~/.focus_monitor.sh stop
+
+# Now lock everything down again correctly
+sudo chmod -R 400 ~/.local/.focus_backup
+sudo chflags -R uchg ~/.local/.focus_backup/*
+sudo chflags uchg ~/.focus_monitor.sh
+
+# Finally, start the script again
+~/.focus_monitor.sh start
