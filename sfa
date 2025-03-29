@@ -36,15 +36,19 @@ sudo chflags -R nouchg ~/.local/.focus_backup
 sudo chflags nouchg ~/.focus_monitor.sh
 
 xattr -c ~/.focus_monitor.sh
-xattr -rc ~/.local/.focus_backup
+sudo xattr -rc ~/.local/.focus_backup
 
 chmod u+rwx ~/.focus_monitor.sh
-chmod -R u+rwx ~/.local/.focus_backup
+sudo chmod -R u+rwx ~/.local/.focus_backup
 
 
 ~/.focus_monitor.sh start
 
 ls -la ~/.focus_monitor.sh ~/.local/.focus_backup/.focus_monitor.sh
 
+---------------
+sudo chflags -R nouchg ~/.local/.focus_backup
+sudo chmod -R u+rwx ~/.local/.focus_backup
+sudo xattr -rc ~/.local/.focus_backup
 
 
