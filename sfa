@@ -8,3 +8,4 @@ sudo chflags uchg ~/.focus_monitor.sh
 launchctl load ~/Library/LaunchAgents/com.user.focuswatchdog.plist
 ~/.focus_monitor.sh start
 
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.user.focuswatchdog.plist
