@@ -24,3 +24,11 @@ sudo chflags uchg ~/.focus_monitor.sh
 
 # Finally, start the script again
 ~/.focus_monitor.sh start
+
+
+
+-=-------------
+
+launchctl unload ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+rm -f ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+rm -f ~/.focus_watchdog.sh
