@@ -30,3 +30,11 @@ sudo chflags uchg ~/.focus_monitor.sh
 
 ~/.focus_monitor.sh start
 
+
+---------------
+
+sudo chflags -R nouchg ~/.local/.focus_backup
+chmod -R u+w ~/.local/.focus_backup
+~/.focus_monitor.sh start
+
+
