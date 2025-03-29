@@ -29,6 +29,10 @@ ls -la ~/.focus_monitor.sh ~/.local/.focus_backup/.focus_monitor.sh
 ~/.focus_monitor.sh stop
 
 
+If it still fails, restart the laptop do till step 4 then rm -rf focus_monitor.sh file and backup file
+
+
+
  Step 5: Edit your script if necessary
 
 vi ~/.focus_monitor.sh
