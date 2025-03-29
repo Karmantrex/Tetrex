@@ -9,3 +9,24 @@ launchctl load ~/Library/LaunchAgents/com.user.focuswatchdog.plist
 ~/.focus_monitor.sh start
 
 launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+
+still failing
+
+sudo chflags -R nouchg ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+sudo chflags -R nouchg ~/.focus_watchdog.sh
+
+launchctl remove com.user.focuswatchdog
+rm -f ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+rm -f ~/.focus_watchdog.sh
+
+launchctl list | grep com.user.focuswatchdog
+sudo chflags nouchg ~/.focus_monitor.sh
+chmod u+w ~/.focus_monitor.sh
+vi ~/.focus_monitor.sh
+
+
+chmod 500 ~/.focus_monitor.sh
+sudo chflags uchg ~/.focus_monitor.sh
+
+~/.focus_monitor.sh start
+
