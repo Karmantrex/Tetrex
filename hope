@@ -1,0 +1,33 @@
+ Step 1: Temporarily stop the Watchdog completely to prevent interference
+
+sudo chflags -R nouchg ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+sudo chflags -R nouchg ~/.focus_watchdog.sh
+launchctl unload ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+launchctl remove com.user.focuswatchdog
+rm -f ~/Library/LaunchAgents/com.user.focuswatchdog.plist
+rm -f ~/.focus_watchdog.sh
+launchctl list | grep com.user.focuswatchdog
+
+
+Step 2: Unlock script and backups fully
+
+sudo chflags -R nouchg ~/.focus_monitor.sh ~/.local/.focus_backup
+sudo chmod -R u+rwx ~/.local/.focus_backup
+chmod u+rwx ~/.focus_monitor.sh
+sudo xattr -rc ~/.local/.focus_backup
+xattr -rc ~/.focus_monitor.sh
+
+
+  🔸 Step 3: Manually ensure the backup has correct permissions
+ls -la ~/.focus_monitor.sh ~/.local/.focus_backup/.focus_monitor.sh
+
+
+  Step 4: Now explicitly stop your script
+
+~/.focus_monitor.sh stop
+
+
+ Step 5: Edit your script if necessary
+
+vi ~/.focus_monitor.sh
+
