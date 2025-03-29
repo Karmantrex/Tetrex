@@ -1,2 +1,76 @@
-ls -l /bin/launchctl /usr/bin/launchctl /usr/sbin/launchctl
-cat ~/Library/LaunchAgents/com.user.focusmonitor.plist
+#!/bin/bash
+
+# Spinner function while search runs in background
+spinner() {
+  local pid=$!
+  local spin='|/-\'
+  local i=0
+  while kill -0 $pid 2>/dev/null; do
+    i=$(( (i+1) %4 ))
+    printf "\r🔎 Scanning for '*$keyword*' %s" "${spin:$i:1}"
+    sleep 0.1
+  done
+  printf "\r✅ Search complete.                  \n"
+}
+
+echo "🔍 Enter the keyword to search for (e.g., focusme):"
+read -r keyword
+
+if [[ -z "$keyword" ]]; then
+  echo "Keyword cannot be empty. Exiting."
+  exit 1
+fi
+
+# Create temp path file and log file
+temp_path_file="$(mktemp)"
+log_file="$HOME/purge_$(date +%Y%m%d_%H%M%S).log"
+
+echo "🔎 Scanning for paths with '*$keyword*' — hang tight..."
+sudo find / -iname "*$keyword*" 2>/dev/null > "$temp_path_file" &
+spinner
+
+if [ ! -s "$temp_path_file" ]; then
+  echo "No matching paths found for '$keyword'. Exiting."
+  rm -f "$temp_path_file"
+  exit 0
+fi
+
+echo "📂 Found $(wc -l < "$temp_path_file") matching paths."
+echo
+
+# Confirm deletion
+read -p "⚠️  Proceed with deletion of these files/directories? (y/N): " confirm
+if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+  echo "Aborted."
+  rm -f "$temp_path_file"
+  exit 0
+fi
+
+script_name="$(basename "$0")"
+path_file_name="$(basename "$temp_path_file")"
+
+echo "🚀 Starting cleanup..."
+echo "🧾 Deletion log: $log_file"
+
+while IFS= read -r raw_path || [[ -n "$raw_path" ]]; do
+  [[ -z "$raw_path" ]] && continue
+
+  quoted_path=$(printf "%q" "$raw_path")
+  eval expanded_path="$quoted_path"
+  base_expanded="$(basename "$expanded_path")"
+
+  if [[ "$base_expanded" == "$script_name" || "$base_expanded" == "$path_file_name" ]]; then
+    echo "Skipping self: $expanded_path" | tee -a "$log_file"
+    continue
+  fi
+
+  if [ -e "$expanded_path" ]; then
+    echo "🗑️  Deleting: $expanded_path" | tee -a "$log_file"
+    sudo rm -rf "$expanded_path"
+  else
+    echo "❌ Not found (maybe already deleted): $expanded_path" | tee -a "$log_file"
+  fi
+done < "$temp_path_file"
+
+rm -f "$temp_path_file"
+echo "✅ Done. Log saved to: $log_file"
