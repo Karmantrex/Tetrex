@@ -4,7 +4,6 @@ AGENT_NAME="com.lock.timezone"
 USERNAME=$(whoami)
 SCRIPT_PATH="/Users/$USERNAME/lock_timezone_to_est.sh"
 PLIST_PATH="/Users/$USERNAME/Library/LaunchAgents/${AGENT_NAME}.plist"
-LOG_PATH="/tmp/lock_timezone.log"
 
 create_helper_script() {
     echo "[*] Creating helper script at $SCRIPT_PATH..."
@@ -68,15 +67,11 @@ create_launch_agent() {
         <string>${SCRIPT_PATH}</string>
     </array>
     <key>StartInterval</key>
-    <integer>1800</integer> <!-- Every 30 minutes -->
+    <integer>1800</integer>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
     <false/>
-    <key>StandardOutPath</key>
-    <string>${LOG_PATH}</string>
-    <key>StandardErrorPath</key>
-    <string>${LOG_PATH}</string>
 </dict>
 </plist>
 EOF
