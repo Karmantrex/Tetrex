@@ -1,3 +1,4 @@
 sudo systemsetup -setusingnetworktime on
 sudo systemsetup -settimezone "America/New_York"
 TZ="America/New_York" date
+TZ=America/New_York date +"%T"
