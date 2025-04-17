@@ -7,17 +7,21 @@ PLIST_PATH="/Users/$USERNAME/Library/LaunchAgents/${AGENT_NAME}.plist"
 LOG_PATH="/tmp/lock_timezone.log"
 
 start_timezone_lock() {
-    echo "[*] Creating timezone enforcement script at $SCRIPT_PATH..."
+    echo "[*] Creating persistent timezone enforcement script at $SCRIPT_PATH..."
 
     cat <<EOF > "$SCRIPT_PATH"
 #!/bin/bash
 DESIRED_TZ="America/New_York"
+
+echo "[*] Enforcing network time..."
+sudo /usr/sbin/systemsetup -setusingnetworktime on
+
 CURRENT_TZ=\$(/usr/sbin/systemsetup -gettimezone | awk '{print \$3}')
 if [[ "\$CURRENT_TZ" != "\$DESIRED_TZ" ]]; then
-    echo "Resetting timezone to \$DESIRED_TZ..."
+    echo "Time zone incorrect. Resetting to \$DESIRED_TZ..."
     sudo /usr/sbin/systemsetup -settimezone "\$DESIRED_TZ"
 else
-    echo "Timezone is already correct."
+    echo "Time zone is already correct."
 fi
 EOF
 
@@ -38,6 +42,8 @@ EOF
         <string>/bin/bash</string>
         <string>${SCRIPT_PATH}</string>
     </array>
+    <key>StartInterval</key>
+    <integer>1800</integer> <!-- 30 minutes -->
     <key>RunAtLoad</key>
     <true/>
     <key>StandardOutPath</key>
@@ -51,10 +57,11 @@ EOF
     echo "[*] Loading LaunchAgent..."
     launchctl load "$PLIST_PATH"
 
-    echo "[*] Forcing timezone to America/New_York now..."
+    echo "[*] Forcing timezone to America/New_York right now..."
+    sudo /usr/sbin/systemsetup -setusingnetworktime on
     sudo /usr/sbin/systemsetup -settimezone "America/New_York"
 
-    echo "[✓] Timezone lock started and will persist on startup."
+    echo "[✓] Timezone lock active and enforced every 30 minutes."
 }
 
 stop_timezone_lock() {
