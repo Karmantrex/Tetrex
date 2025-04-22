@@ -1,3 +1,26 @@
-  unhealthy := to_number(raw_unhealthy)           else unhealthy := 
-  interval  := to_number(raw_interval)            else interval  := 
-  timeout   := to_number(raw_timeout)             else timeout   := 
+unhealthy := unheatlhyReal {
+	unheatlhyReal := to_number(raw_unhealthy)
+	raw_unhealthy != null
+}
+unhealthy := unheatlyDefault {
+	unheatlyDefault := 1
+	raw_unhealthy == null
+}
+ 
+interval := intervalReal {
+	intervalReal := to_number(raw_interval)
+	raw_interval != null
+}
+interval := intervalDefault {
+	intervalDefault := 2
+	raw_interval == null
+}
+ 
+timeout := timeoutReal {
+	timeoutReal := to_number(raw_interval)
+	raw_interval != null
+}
+timeout := timeoutDefault {
+	timeoutDefault := 3
+	raw_interval == null
+}
