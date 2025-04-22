@@ -1,4 +1,3 @@
-sudo systemsetup -setusingnetworktime on
-sudo systemsetup -settimezone "America/New_York"
-TZ="America/New_York" date
-TZ=America/New_York date +"%T"
+  unhealthy := to_number(raw_unhealthy)           else unhealthy := 
+  interval  := to_number(raw_interval)            else interval  := 
+  timeout   := to_number(raw_timeout)             else timeout   := 
