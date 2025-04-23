@@ -4,3 +4,19 @@ default_with_fallback(val, fallback) = out {
 } else = out if {
   out := val
 }
+
+
+
+default_with_fallback(val, fallback) = out {
+  not is_null(val)
+  out := val
+}
+
+default_with_fallback(val, fallback) = out {
+  is_null(val)
+  out := fallback
+}
+
+is_null(x) {
+  x == null
+}
