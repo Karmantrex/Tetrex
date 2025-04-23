@@ -1,7 +1,6 @@
-default_with_fallback(val, fallback) = fallback {
+default_with_fallback(val, fallback) = out {
+  out := fallback
   val == null
-}
-
-default_with_fallback(val, fallback) = val {
-  val != null
+} else = out if {
+  out := val
 }
