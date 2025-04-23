@@ -1,1 +1,8 @@
-
+default_with_fallback(val, fallback) = out {
+  val == null
+  out = fallback
+}
+default_with_fallback(val, _) = out {
+  val != null
+  out = val
+}
