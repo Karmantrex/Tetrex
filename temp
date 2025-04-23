@@ -5,6 +5,12 @@ default_with_fallback(val, fallback) = out {
   out := val
 }
 
+default_with_fallback(val, fallback) = out {
+  out := fallback
+  if val == null
+} else = out {
+  out := val
+}
 
 
 default_with_fallback(val, fallback) = out {
