@@ -6,3 +6,22 @@ default_with_fallback(val, _) = out {
   val != null
   out = val
 }
+
+----------
+default_with_fallback(val, fallback) = fallback if {
+  val == null
+}
+
+default_with_fallback(val, fallback) = val if {
+  val != null
+}
+
+-------------
+
+default_with_fallback(val, fallback) = fallback if {
+  val == null
+}
+
+default_with_fallback(val, _) = val if {
+  val != null
+}
