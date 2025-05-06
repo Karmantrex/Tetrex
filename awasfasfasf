@@ -6,34 +6,43 @@ git blame error_codes.yaml | grep "errorTroubleshootGuide: null" | awk '{print $
 
 
 
-
-
 @A <- @"DesiredTaskCount_from_aws/ECS Container Insights Metrics" {
-    filter metric = "DesiredTaskCount"
+  filter metric = "DesiredTaskCount"
 }
 @B <- @"CPUUtilization_from_aws/ECS Service Metrics" {
-    filter metric = "CPUUtilization"
+  filter metric = "CPUUtilization"
 }
 @C <- @"MemoryUtilization_from_aws/ECS Service Metrics" {
-    filter metric = "MemoryUtilization"
+  filter metric = "MemoryUtilization"
 }
 
 @A_B_C <- @A {
-    union @B, @C
+  union @B, @C
 }
 
-<- @A_B_C {
-    make_col commonServiceName:
-        lower(
-            if(metric = "DesiredTaskCount", 
-               string(ServiceName), 
-               string(serviceName)
-            )
-        )
-    filter metric in ("CPUUtilization", "MemoryUtilization", "DesiredTaskCount")
-    filter is_null($Service_Name) or array_contains($Service_Name, commonServiceName)
-    statsby
-        max_value: max(value),
-        min_value: min(value),
-        group_by(commonServiceName, metric)
-}
+options(
+  serviceName: "Select a service name",
+  choices: ["Service1", "Service2", "Service3"]
+)
+
+<- @A_B_C {}  // kick off the pipeline
+
+make_col commonServiceName:
+  lower(
+    case(
+      metric = "DesiredTaskCount", ServiceName,
+      true, serviceName
+    )
+  )
+
+filter
+  metric in ("DesiredTaskCount", "CPUUtilization", "MemoryUtilization")
+
+statsby
+  max_value: max(value),
+  min_value: min(value),
+  group_by(commonServiceName, metric)
+
+filter
+  array_contains($serviceName, commonServiceName)
+  or is_null($serviceName)
