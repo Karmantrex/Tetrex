@@ -2,3 +2,8 @@ filter array_contains($Service_Name, commonServiceName) or array_contains($servi
 🟩🅰️🅱️🆎
 ⬜🔠1️⃣2️⃣
 ⬜🔠3️⃣4️⃣
+
+
+  document.body.style.zoom = '0.8'; // Try 80% zoom
+  document.body.style.transform = 'scale(0.8)';
+  document.body.style.transformOrigin = 'top left';
