@@ -1,9 +1,30 @@
-filter array_contains($Service_Name, commonServiceName) or array_contains($serviceNam, commonServiceName) or (is_null($Service_Name) and is_null($serviceNam))
-🟩🅰️🅱️🆎
-⬜🔠1️⃣2️⃣
-⬜🔠3️⃣4️⃣
+function extractMismatchedRows() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sourceSheet = ss.getSheetByName("Sheet1"); // Change if your sheet has a different name
+  const targetSheetName = "MismatchedRows";
 
+  // Get all data
+  const data = sourceSheet.getDataRange().getValues();
+  const header = data[0];
+  
+  // Filter rows where column U !== column V
+  const mismatchedRows = data.filter((row, index) => {
+    if (index === 0) return false; // Skip header
+    const colU = row[20]; // Column U (index 20)
+    const colV = row[21]; // Column V (index 21)
+    return colU !== colV;
+  });
 
-  document.body.style.zoom = '0.8'; // Try 80% zoom
-  document.body.style.transform = 'scale(0.8)';
-  document.body.style.transformOrigin = 'top left';
+  // Remove existing sheet if present
+  let targetSheet = ss.getSheetByName(targetSheetName);
+  if (targetSheet) {
+    ss.deleteSheet(targetSheet);
+  }
+
+  // Create and populate new sheet
+  targetSheet = ss.insertSheet(targetSheetName);
+  targetSheet.appendRow(header);
+  mismatchedRows.forEach(row => targetSheet.appendRow(row));
+
+  Logger.log(`${mismatchedRows.length} mismatched rows copied to '${targetSheetName}'`);
+}
