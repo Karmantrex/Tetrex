@@ -1,25 +1,19 @@
 #!/bin/bash
 
-line1='"asf-sfas","etueire","afssdfsa","wertyui"'
-line2='"asf-sfas","etueire","afssdfsa"'
-
-# Convert line1 and line2 into arrays (strip quotes, split by comma)
-arr1=($(echo "$line1" | tr -d '"' | tr ',' '\n'))
-arr2=($(echo "$line2" | tr -d '"' | tr ',' '\n'))
-
-missing=()
-
-# Check each item in arr2 against arr1
-for item in "${arr2[@]}"; do
-  if ! printf '%s\n' "${arr1[@]}" | grep -qx "$item"; then
-    missing+=("$item")
+check_csv() {
+  local csv_string="$1"
+  # Remove all properly quoted fields
+  local stripped=$(echo "$csv_string" | sed 's/"[^"]*"//g')
+  # Remove all commas
+  local no_commas=$(echo "$stripped" | sed 's/,//g')
+  # Remove whitespace
+  local trimmed=$(echo "$no_commas" | tr -d '[:space:]')
+  
+  # If anything remains, we have improperly formatted content
+  if [ -n "$trimmed" ]; then
+    echo "❌ CSV contains improperly separated values"
+    echo "Potential problem areas: $trimmed"
+  else
+    echo "✅ All values appear to be properly comma-separated"
   fi
-done
-
-# Output result
-if [ ${#missing[@]} -eq 0 ]; then
-  echo "✅ All items in line2 exist in line1"
-else
-  echo "❌ Missing from line1:"
-  for m in "${missing[@]}"; do echo " - $m"; done
-fi
+}
