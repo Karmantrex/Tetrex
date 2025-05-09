@@ -4,3 +4,14 @@ git log --remotes --since="2025-04-01" --until="2025-04-18" -p | grep -i ""
 git log --remotes --since="2025-04-01" --until="2025-04-18" -p | grep -i "ARG JAVA_VER"
 
 git log --remotes --since="2025-04-01" --until="2025-04-18" -p | grep -E "corretto|JAVA_VER|8\.4"
+
+
+for branch in $(git branch -r | grep -v '\->'); do
+  echo "Checking commits in $branch"
+  git log "$branch" --since="2025-04-01" --until="2025-04-20" -p | grep -q ""
+  if [ $? -eq 0 ]; then
+    echo "⚠️  Found  in commits of $branch between Apr 1–20"
+  else
+    echo "✅  Not found in $branch during that period"
+  fi
+done
