@@ -15,3 +15,5 @@ for branch in $(git branch -r | grep -v '\->'); do
     echo "✅  Not found in $branch during that period"
   fi
 done
+
+https://github.com/corretto/corretto-8/blob/develop/CHANGELOG.md
