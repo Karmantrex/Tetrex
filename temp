@@ -1,3 +1,6 @@
 git log --remotes --since="2025-04-01" --until="2025-04-18" -p | grep -i ""
 
 
+git log --remotes --since="2025-04-01" --until="2025-04-18" -p | grep -i "ARG JAVA_VER"
+
+git log --remotes --since="2025-04-01" --until="2025-04-18" -p | grep -E "corretto|JAVA_VER|8\.4"
