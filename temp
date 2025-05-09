@@ -1,12 +1,25 @@
 #!/bin/bash
 
-# Initialize an empty result string
-result=""
+line1='"asf-sfas","etueire","afssdfsa","wertyui"'
+line2='"asf-sfas","etueire","afssdfsa"'
 
-# Read each line from input.txt and append to the result
-while IFS= read -r line || [[ -n "$line" ]]; do
-    result+="\"$line\","
-done < input.txt
+# Convert line1 and line2 into arrays (strip quotes, split by comma)
+arr1=($(echo "$line1" | tr -d '"' | tr ',' '\n'))
+arr2=($(echo "$line2" | tr -d '"' | tr ',' '\n'))
 
-# Remove the trailing comma and echo
-echo "${result%,}"
+missing=()
+
+# Check each item in arr2 against arr1
+for item in "${arr2[@]}"; do
+  if ! printf '%s\n' "${arr1[@]}" | grep -qx "$item"; then
+    missing+=("$item")
+  fi
+done
+
+# Output result
+if [ ${#missing[@]} -eq 0 ]; then
+  echo "✅ All items in line2 exist in line1"
+else
+  echo "❌ Missing from line1:"
+  for m in "${missing[@]}"; do echo " - $m"; done
+fi
