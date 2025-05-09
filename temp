@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# Read the input file line-by-line and store it as an array
-mapfile -t items < input.txt
+# Initialize an empty result string
+result=""
 
-# Join the array into a quoted, comma-separated string
-quoted_list=$(printf '"%s",' "${items[@]}")
-quoted_list=${quoted_list%,}  # Remove the trailing comma
+# Read each line from input.txt and append to the result
+while IFS= read -r line || [[ -n "$line" ]]; do
+    result+="\"$line\","
+done < input.txt
 
-# Output the result
-echo "$quoted_list"
+# Remove the trailing comma and echo
+echo "${result%,}"
