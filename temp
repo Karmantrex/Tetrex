@@ -1,30 +1,11 @@
-function extractMismatchedRows() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sourceSheet = ss.getSheetByName("Sheet1"); // Change if your sheet has a different name
-  const targetSheetName = "MismatchedRows";
+#!/bin/bash
 
-  // Get all data
-  const data = sourceSheet.getDataRange().getValues();
-  const header = data[0];
-  
-  // Filter rows where column U !== column V
-  const mismatchedRows = data.filter((row, index) => {
-    if (index === 0) return false; // Skip header
-    const colU = row[20]; // Column U (index 20)
-    const colV = row[21]; // Column V (index 21)
-    return colU !== colV;
-  });
+# Read the input file line-by-line and store it as an array
+mapfile -t items < input.txt
 
-  // Remove existing sheet if present
-  let targetSheet = ss.getSheetByName(targetSheetName);
-  if (targetSheet) {
-    ss.deleteSheet(targetSheet);
-  }
+# Join the array into a quoted, comma-separated string
+quoted_list=$(printf '"%s",' "${items[@]}")
+quoted_list=${quoted_list%,}  # Remove the trailing comma
 
-  // Create and populate new sheet
-  targetSheet = ss.insertSheet(targetSheetName);
-  targetSheet.appendRow(header);
-  mismatchedRows.forEach(row => targetSheet.appendRow(row));
-
-  Logger.log(`${mismatchedRows.length} mismatched rows copied to '${targetSheetName}'`);
-}
+# Output the result
+echo "$quoted_list"
