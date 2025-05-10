@@ -7,3 +7,9 @@ git log --remotes --since="2025-04-01" --until="2025-04-18" -p | grep -E "corret
 
 
 git log origin/main --since="2025-04-01" --until="2025-04-30" --pretty=format:"%h %ad %an %s" --date=short
+
+
+
+git log origin/main --since="2025-04-01" --until="2025-04-30" --grep='merge\|pull\|#' --oneline
+git log origin/main --since="2025-04-01" --until="2025-04-30" --pretty=format:"%h %an %s"
+git log origin/main --since="2025-04-01" --until="2025-04-30" --stat
