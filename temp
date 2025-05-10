@@ -13,3 +13,4 @@ git log origin/main --since="2025-04-01" --until="2025-04-30" --pretty=format:"%
 git log origin/main --since="2025-04-01" --until="2025-04-30" --grep='merge\|pull\|#' --oneline
 git log origin/main --since="2025-04-01" --until="2025-04-30" --pretty=format:"%h %an %s"
 git log origin/main --since="2025-04-01" --until="2025-04-30" --stat
+git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2025-04-30"
