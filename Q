@@ -9,13 +9,14 @@ END_DATE="2025-05-10"
 echo "Tracking JAVA_VER changes in $FILE_PATH between $START_DATE and $END_DATE"
 echo "========================================================================="
 
-# Collect all commits touching the Dockerfile in reverse order (oldest first)
-git log "$BRANCH" --since="$START_DATE" --until="$END_DATE" --pretty=format:"%H %ad" --date=short -- "$FILE_PATH" |
-awk '{ commits[NR]=$1; dates[NR]=$2 } END { for (i=1; i<=NR; i++) print commits[i], dates[i] }' |
+# Use --reverse to ensure oldest commits are processed first
+git log --reverse "$BRANCH" --since="$START_DATE" --until="$END_DATE" --pretty=format:"%H %ad" --date=short -- "$FILE_PATH" |
 while read -r commit date; do
   # Extract JAVA_VER line(s) from the Dockerfile at that commit
   content=$(git show "$commit:$FILE_PATH" 2>/dev/null | grep "$KEYWORD" || true)
-  version=$(echo "$content" | grep -o 'JAVA_VER[= ][^ ]*' | awk -F'[= ]' '{print $2}' | head -n1)
+  
+  # More flexible version extraction - handles various formats
+  version=$(echo "$content" | grep -o "$KEYWORD[[:space:]]*[=:][[:space:]]*[^ ,\"']*" | sed "s/$KEYWORD[[:space:]]*[=:][[:space:]]*//g" | head -n1)
 
   # Normalize result
   if [[ -z "$version" ]]; then
@@ -41,4 +42,6 @@ if [[ -n "$last_version" ]]; then
   echo "Version: $last_version"
   echo "  Active: $start_date to $END_DATE"
   echo "  Introduced in commit: $start_commit"
+else
+  echo "No JAVA_VER entries found in the specified date range."
 fi
