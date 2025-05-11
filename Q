@@ -1,0 +1,43 @@
+#!/bin/bash
+
+FILE_PATH="Dockerfile"
+BRANCH="origin/main"
+KEYWORD="JAVA_VER"
+START_DATE="2024-05-01"
+END_DATE="2025-05-10"
+
+echo "Tracking JAVA_VER changes in $FILE_PATH between $START_DATE and $END_DATE"
+echo "========================================================================="
+
+git log "$BRANCH" --since="$START_DATE" --until="$END_DATE" \
+  --pretty=format:"%H %ad" --date=short -- "$FILE_PATH" |
+  awk '{ lines[NR]=$0 } END { for (i=NR; i>0; i--) print lines[i] }' |
+  while read -r commit date; do
+    content=$(git show "$commit:$FILE_PATH" 2>/dev/null | grep "$KEYWORD" || true)
+    version=$(echo "$content" | grep -o 'JAVA_VER[= ][^ ]*' | awk -F'[= ]' '{print $2}' | head -n1)
+
+    if [[ -z "$version" ]]; then
+      version_status="No JAVA_VER"
+    else
+      version_status="$version"
+    fi
+
+    if [[ "$version_status" != "$last_version" ]]; then
+      if [[ -n "$last_version" ]]; then
+        echo "Version: $last_version"
+        echo "  Active: $start_date to $date"
+        echo "  Introduced in commit: $start_commit"
+        echo ""
+      fi
+      last_version="$version_status"
+      start_date="$date"
+      start_commit="$commit"
+    fi
+  done
+
+# Final period
+if [[ -n "$last_version" ]]; then
+  echo "Version: $last_version"
+  echo "  Active: $start_date to $END_DATE"
+  echo "  Introduced in commit: $start_commit"
+fi
