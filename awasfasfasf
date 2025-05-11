@@ -6,8 +6,8 @@ git blame error_codes.yaml | grep "errorTroubleshootGuide: null" | awk '{print $
 
 
 for i in {0..11}; do
-  since=$(date -d "$i month ago" +%Y-%m-01)
-  until=$(date -d "$since +1 month" +%Y-%m-01)
+  since=$(date -v -${i}m +%Y-%m-01)
+  until=$(date -v -${i}m -v+1m +%Y-%m-01)
 
   echo "== $since to $until =="
   git log origin/main --since="$since" --until="$until" -p --pretty=format:"%C(yellow)%h %Cgreen%ad %Cblue%an %Creset%s" --date=short | \
