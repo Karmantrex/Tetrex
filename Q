@@ -9,33 +9,34 @@ END_DATE="2025-05-10"
 echo "Tracking JAVA_VER changes in $FILE_PATH between $START_DATE and $END_DATE"
 echo "========================================================================="
 
-git log "$BRANCH" --since="$START_DATE" --until="$END_DATE" \
-  --pretty=format:"%H %ad" --date=short -- "$FILE_PATH" |
-  awk '{ lines[NR]=$0 } END { for (i=NR; i>0; i--) print lines[i] }' |
-  while read -r commit date; do
-    content=$(git show "$commit:$FILE_PATH" 2>/dev/null | grep "$KEYWORD" || true)
-    version=$(echo "$content" | grep -o 'JAVA_VER[= ][^ ]*' | awk -F'[= ]' '{print $2}' | head -n1)
+# Collect all commits touching the Dockerfile in reverse order (oldest first)
+git log "$BRANCH" --since="$START_DATE" --until="$END_DATE" --pretty=format:"%H %ad" --date=short -- "$FILE_PATH" |
+awk '{ commits[NR]=$1; dates[NR]=$2 } END { for (i=1; i<=NR; i++) print commits[i], dates[i] }' |
+while read -r commit date; do
+  # Extract JAVA_VER line(s) from the Dockerfile at that commit
+  content=$(git show "$commit:$FILE_PATH" 2>/dev/null | grep "$KEYWORD" || true)
+  version=$(echo "$content" | grep -o 'JAVA_VER[= ][^ ]*' | awk -F'[= ]' '{print $2}' | head -n1)
 
-    if [[ -z "$version" ]]; then
-      version_status="No JAVA_VER"
-    else
-      version_status="$version"
+  # Normalize result
+  if [[ -z "$version" ]]; then
+    version="No JAVA_VER"
+  fi
+
+  # Compare to previous version state
+  if [[ "$version" != "$last_version" ]]; then
+    if [[ -n "$last_version" ]]; then
+      echo "Version: $last_version"
+      echo "  Active: $start_date to $date"
+      echo "  Introduced in commit: $start_commit"
+      echo ""
     fi
+    last_version="$version"
+    start_date="$date"
+    start_commit="$commit"
+  fi
+done
 
-    if [[ "$version_status" != "$last_version" ]]; then
-      if [[ -n "$last_version" ]]; then
-        echo "Version: $last_version"
-        echo "  Active: $start_date to $date"
-        echo "  Introduced in commit: $start_commit"
-        echo ""
-      fi
-      last_version="$version_status"
-      start_date="$date"
-      start_commit="$commit"
-    fi
-  done
-
-# Final period
+# Final version info for trailing range
 if [[ -n "$last_version" ]]; then
   echo "Version: $last_version"
   echo "  Active: $start_date to $END_DATE"
