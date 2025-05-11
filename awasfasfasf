@@ -6,23 +6,50 @@ git blame error_codes.yaml | grep "errorTroubleshootGuide: null" | awk '{print $
 
 #!/bin/bash
 
-# Loop over each remote branch
-for branch in $(git branch -r | grep -v '\->'); do
-  echo "==============================="
-  echo "Branch: $branch"
-  echo "==============================="
+#!/bin/bash
 
-  for i in {0..11}; do
-    since=$(date -v -"${i}"m +%Y-%m-01)
-    until=$(date -v -"${i}"m -v+1m +%Y-%m-01)
+FILE_PATH="Dockerfile"   # Adjust if needed
+BRANCH="origin/main"
+KEYWORD="JAVA_VER"
+START_DATE="2024-05-01"
+END_DATE="2025-05-10"
 
-    echo "== $since to $until =="
+# Get commit history for the file
+commits=$(git log "$BRANCH" --since="$START_DATE" --until="$END_DATE" --pretty=format:"%H %ad" --date=short -- "$FILE_PATH" | tac)
 
-    git log "$branch" --since="$since" --until="$until" -p \
-      --pretty=format:"%C(yellow)%h %Cgreen%ad %Cblue%an %Creset%s" --date=short | \
-      awk '/^commit/ {commit=$0} /JAVA_VER/ {print commit "\n" $0 "\n"}' | \
-      grep -E 'JAVA_VER' || echo "No JAVA_VER updates"
+last_version=""
+start_date=""
+start_commit=""
 
-    echo
-  done
-done
+echo "Tracking JAVA_VER changes in $FILE_PATH between $START_DATE and $END_DATE"
+echo "========================================================================="
+
+while read -r commit date; do
+  content=$(git show "$commit:$FILE_PATH" 2>/dev/null | grep "$KEYWORD" || true)
+  version=$(echo "$content" | grep -oP '(?<=JAVA_VER[= ])[^ ]+' | head -n1)
+
+  if [[ -z "$version" ]]; then
+    version_status="No JAVA_VER"
+  else
+    version_status="$version"
+  fi
+
+  if [[ "$version_status" != "$last_version" ]]; then
+    if [[ -n "$last_version" ]]; then
+      echo "Version: $last_version"
+      echo "  Active: $start_date to $date"
+      echo "  Introduced in commit: $start_commit"
+      echo ""
+    fi
+    last_version="$version_status"
+    start_date="$date"
+    start_commit="$commit"
+  fi
+done <<< "$commits"
+
+# Handle the final active version period
+if [[ -n "$last_version" ]]; then
+  echo "Version: $last_version"
+  echo "  Active: $start_date to $END_DATE"
+  echo "  Introduced in commit: $start_commit"
+fi
