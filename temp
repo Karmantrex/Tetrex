@@ -49,3 +49,9 @@ for repo in repos:
 print("Repos missing "" checks:")
 for r in missing_check:
     print(f"- {r}")
+
+
+
+	1.	Go to your org’s repo list.
+	2.	Open each repo → Settings → Branches → Branch protection rules.
+	3.	Check if rules include:
