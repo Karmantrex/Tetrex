@@ -18,7 +18,7 @@ git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2
 
 grep -RIn 'good:' . | 
 perl -ne '
-  if (/^.+?:\d+:.*?(good:\s*(?:<)?\S+:\^?\d+(?:\.\d+)*)/) {
+  if (/^.+?:\d+:.*?(good:\s*(?:<)?\S+:\^\d+(?:\.\d+)*)/) {
     print "$1\n" unless $seen{$1}++;
   }
 '
