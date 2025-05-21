@@ -18,17 +18,13 @@ git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2
 
 
 
-gh repo list bg \
-  --limit 1000 \
-  --json nameWithOwner \
-  --jq '.[].nameWithOwner' \
-| xargs -n1 gh repo clone
-
-
-cd ~/org-repos
-
-gh repo list bg \
-  --limit 1000 \
-  --json nameWithOwner \
-  --template '{{range .}}{{.nameWithOwner}}{{"\n"}}{{end}}' \
-| xargs -n1 gh repo clone
+grep -RIn --include='*.{yml,yaml,tf,rego,md}' \
+  -e 'g:[[:space:]]*[^[:space:]]\+:\^[0-9]\+' \
+  . \
+| awk -F: '{
+    # pull the g string out of the full line
+    match($0, /g:[[:space:]]*[^[:space:]]+:\^[0-9]+/, m)
+    g = m[0]
+    # only print the very first time we see this g
+    if (!seen[g]++) print $0
+  }'
