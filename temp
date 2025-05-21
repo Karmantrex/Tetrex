@@ -18,10 +18,11 @@ git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2
 
 
 grep -RIn --include='*.{yml,yaml,tf,rego,md}' 'good:' . \
-| awk '
-  # look for good: name:^N in the entire line
-  match($0, /good:[[:space:]]*[^[:space:]]+:\^[0-9]+/) {
-    g = substr($0, RSTART, RLENGTH)   # extract the good string
-    if (!seen[g]++) print              # print the line once per unique good
+| perl -ne '
+  if (m{^(.+?):(\d+):(.*?)(good:\s*[^[:space:]]+:\^[0-9]+)}) {
+    ($file,$line,$good) = ($1, $2, $4);
+    # print only the first occurrence of each unique $good
+    print "$file:$line:$good\n" unless $seen{$good}++;
   }
+'
 '
