@@ -16,11 +16,13 @@ git log origin/main --since="2025-04-01" --until="2025-04-30" --stat
 git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2025-04-30"
 
 
+grep -RIn --include='*.{yml,yaml,tf,rego,md}' 'good:' .
+
+
 
 grep -RIn --include='*.{yml,yaml,tf,rego,md}' 'good:' . | 
-perl -ne '
-  if (m{^(.+?):(\d+):(.+?)(good:\s*\S+:\^\d+)}) {
-    ($file,$line,$prefix,$good) = ($1, $2, $3, $4);
-    print "$file:$line:$good\n" unless $seen{$good}++;
-  }
-'
+perl -ne 'print if /good:\s*\S+:\^\d+/'
+
+
+
+grep -RIn --include='*.{yml,yaml,tf,rego,md}' 'good:' . | head -10
