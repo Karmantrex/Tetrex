@@ -16,42 +16,9 @@ git log origin/main --since="2025-04-01" --until="2025-04-30" --stat
 git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2025-04-30"
 
 
-import requests
-
-GITHUB_TOKEN = "your_github_pat"
-ORG = "your-org-name"
-HEADERS = {"Authorization": f"token {GITHUB_TOKEN}"}
-
-def get_repos(org):
-    url = f"https://api.github.com/orgs/{org}/repos?per_page=100"
-    response = requests.get(url, headers=HEADERS)
-    return [repo["name"] for repo in response.json()]
-
-def get_branch_protection(repo):
-    url = f"https://api.github.com/repos/{ORG}/{repo}/branches/main/protection"
-    response = requests.get(url, headers=HEADERS)
-    if response.status_code == 200:
-        return response.json()
-    return {}
-
-def check_for_whitesource(repo):
-    protection = get_branch_protection(repo)
-    checks = protection.get("required_status_checks", {}).get("contexts", [])
-    return any("" in check.lower() for check in checks)
-
-repos = get_repos(ORG)
-missing_check = []
-
-for repo in repos:
-    if not check_for_(repo):
-        missing_check.append(repo)
-
-print("Repos missing "" checks:")
-for r in missing_check:
-    print(f"- {r}")
 
 
-
-	1.	Go to your org’s repo list.
-	2.	Open each repo → Settings → Branches → Branch protection rules.
-	3.	Check if rules include:
+gh repo list ba \
+  --limit 1000 \
+  --template '{{.nameWithOwner}}' \
+| xargs -n1 gh repo clone
