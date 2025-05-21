@@ -17,12 +17,9 @@ git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2
 
 
 grep -RIn --include='*.{yml,yaml,tf,rego,md}' 'good:' .
-
-
-
-grep -RIn --include='*.{yml,yaml,tf,rego,md}' 'good:' . | 
-perl -ne 'print if /good:\s*\S+:\^\d+/'
-
-
-
-grep -RIn --include='*.{yml,yaml,tf,rego,md}' 'good:' . | head -10
+grep -RIn 'good:' . | 
+perl -ne '
+  if (/^(.+?):(\d+):.*?(good:\s*\S+:\S+)/) {
+    print "$1:$2:$3\n" unless $seen{$3}++;
+  }
+'
