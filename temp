@@ -16,10 +16,9 @@ git log origin/main --since="2025-04-01" --until="2025-04-30" --stat
 git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2025-04-30"
 
 
-grep -RIn --include='*.{yml,yaml,tf,rego,md}' 'good:' .
 grep -RIn 'good:' . | 
 perl -ne '
-  if (/^(.+?):(\d+):.*?(good:\s*\S+:\S+)/) {
+  if (/^(.+?):(\d+):.*?(good:\s*\S+:\^\d+)/) {
     print "$1:$2:$3\n" unless $seen{$3}++;
   }
 '
