@@ -17,15 +17,11 @@ git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2
 
 
 
-grep -RIn --include='*.{yml,yaml,tf,rego,md}' \
-  -e 'good:[[:space:]]*[^[:space:]]\+:\^[0-9]\+' \
-  . \
-| awk -F: '{
-    # run match to set RSTART and RLENGTH
-    if (match($0, /good:[[:space:]]*[^[:space:]]+:\^[0-9]+/)) {
-      # extract the exact good string
-      good = substr($0, RSTART, RLENGTH)
-      # print only the first time each good appears
-      if (!seen[good]++) print $0
-    }
-  }'
+grep -RIn --include='*.{yml,yaml,tf,rego,md}' 'good:' . \
+| awk '
+  # look for good: name:^N in the entire line
+  match($0, /good:[[:space:]]*[^[:space:]]+:\^[0-9]+/) {
+    g = substr($0, RSTART, RLENGTH)   # extract the good string
+    if (!seen[g]++) print              # print the line once per unique good
+  }
+'
