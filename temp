@@ -22,3 +22,6 @@ perl -ne '
     print "$1\n" unless $seen{$1}++;
   }
 '
+
+
+git status --porcelain | awk -F/ '{print $1}' | sort -u
