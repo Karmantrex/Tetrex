@@ -18,3 +18,4 @@ git log --graph --decorate --oneline origin/main --since="2025-04-01" --until="2
 
 shasum -a 256 ~/.direnv/bin/opa | awk '{print $1}'
 
+curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v0.63.0/opa_darwin_arm64_static
