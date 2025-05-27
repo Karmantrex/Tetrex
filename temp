@@ -21,3 +21,23 @@ shasum -a 256 ~/.direnv/bin/opa | awk '{print $1}'
 curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v0.63.0/opa_darwin_arm64_static
 
 curl -L -o ~/.direnv/bin/opa https://github.com/open-policy-agent/opa/releases/download/v0.63.0/opa_darwin_arm64_static
+
+
+# Delete the user's VS Code configuration and extensions folder
+rm -rf ~/.vscode/
+
+# Delete the main application support data
+rm -rf ~/Library/Application\ Support/Code/
+
+# Delete the cache files
+rm -rf ~/Library/Caches/com.microsoft.VSCode/
+
+# Delete the preference files
+rm -rf ~/Library/Preferences/com.microsoft.VSCode.plist
+rm -rf ~/Library/Preferences/com.microsoft.VSCode.helper.plist
+
+# Delete the saved application state
+rm -rf ~/Library/Saved\ Application\ State/com.microsoft.VSCode.savedState/
+
+# Delete any VS Code specific logs
+rm -rf ~/Library/Logs/VSCode/
