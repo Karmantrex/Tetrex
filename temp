@@ -20,4 +20,4 @@ shasum -a 256 ~/.direnv/bin/opa | awk '{print $1}'
 
 curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v0.63.0/opa_darwin_arm64_static
 
-openssl dgst -sha256 -binary opa | openssl base64
+curl -L -o ~/.direnv/bin/opa https://github.com/open-policy-agent/opa/releases/download/v0.63.0/opa_darwin_arm64_static
