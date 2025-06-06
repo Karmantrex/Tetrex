@@ -41,3 +41,13 @@ rm -rf ~/Library/Saved\ Application\ State/com.microsoft.VSCode.savedState/
 
 # Delete any VS Code specific logs
 rm -rf ~/Library/Logs/VSCode/
+
+
+
+project in (I, AUTH)
+AND creator = S
+AND due <= 15d
+AND status not in (Closed, "Ready for Acceptance")
+AND labels in ("Container", "Container-Inherited", "Infrastructure")
+ORDER BY labels ASC, due ASC
+
