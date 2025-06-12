@@ -1,3 +1,10 @@
-[ -z "$OPEN_POLICY_AGENT_VERSION" ] && OPEN_POLICY_AGENT_VERSION="0.63.0"
-
-[ -z "$REGAL_VERSION" ] && REGAL_VERSION="0.16.0"
+fetchurl() {
+  local url=$1
+  local sha=$2
+  local file="${DIRENV_TMP_DIR}/$(basename "$url")"
+  if [ ! -f "$file" ]; then
+    echo "Fetching $url..."
+    curl -L -o "$file" "$url"
+  fi
+  echo "$file"
+}
