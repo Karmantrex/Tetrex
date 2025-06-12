@@ -8,3 +8,7 @@ fetchurl() {
   fi
   echo "$file"
 }
+
+
+
+opa eval 'http.send({"method": "GET", "url": "https://www.google.com"})'
