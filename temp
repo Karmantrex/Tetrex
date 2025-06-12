@@ -1,22 +1,3 @@
-# Return tags based on test or production mode
-image_tags(registry_url, namespace, name) := tags if {
-    # If it's a test URL, return test tags
-    registry_url == "http://localhost"
-    namespace == "testing"
-    name == "found"
-    tags := ["tag"]
-} else := tags if {
-    # Another test case
-    registry_url == "http://localhost"
-    namespace == "testing"
-    name == "not-found"
-    tags := []
-} else := tags if {
-    # For production, return hardcoded tags
-    namespace in _hardcoded_tags
-    name in _hardcoded_tags[namespace]
-    tags := _hardcoded_tags[namespace][name]
-} else := []
+[ -z "$OPEN_POLICY_AGENT_VERSION" ] && OPEN_POLICY_AGENT_VERSION="0.63.0"
 
-# Stub function for compatibility with docker_test.rego
-_auth_token(registry_url) := "dummy-token"
+[ -z "$REGAL_VERSION" ] && REGAL_VERSION="0.16.0"
