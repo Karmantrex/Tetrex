@@ -1,17 +1,1 @@
-# Replace these with your actual Artifactory username and password/token
-USERNAME="your_username"
-PASSWORD="your_password"
-
-# Create Base64-encoded credentials
-ENCODED_CREDS=$(echo -n "$USERNAME:$PASSWORD" | base64)
-
-
-opa eval 'http.send({
-  "method": "GET",
-  "url": "",
-  "headers": {
-    "Authorization": sprintf("Basic %s", ["'"$ENCODED_CREDS"'"]),
-    "Accept": "application/json"
-  }
-})'
-opa eval 'http.send({"method": "GET", "url": "https://www.google.com"})'
+-from:(*@capitalone.com OR *@slack.com)
