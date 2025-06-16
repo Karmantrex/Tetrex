@@ -1,1 +1,2 @@
 grep ARTIFACTORY_ ~/.zshrc ~/.bashrc ~/.bash_profile 2>/dev/null
+find ~/ -name ".envrc" -exec grep -Hi ARTIFACTORY {} \; 2>/dev/null
