@@ -1,1 +1,1 @@
--from:(*@capitalone.com OR *@slack.com)
+grep ARTIFACTORY_ ~/.zshrc ~/.bashrc ~/.bash_profile 2>/dev/null
