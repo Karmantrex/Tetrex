@@ -1,2 +1,33 @@
-grep ARTIFACTORY_ ~/.zshrc ~/.bashrc ~/.bash_profile 2>/dev/null
-find ~/ -name ".envrc" -exec grep -Hi ARTIFACTORY {} \; 2>/dev/null
+/**
+ * Count rows where the target ARN appears anywhere in
+ * the “Configuration Item Diff” column.
+ *
+ * HOW TO USE:
+ * 1. Change TARGET_ARN to the exact ARN you want to search for.
+ * 2. Press the ► Run button in the Apps Script editor.
+ * 3. Authorise the script the first time it runs.
+ */
+function countArnMatches() {
+  const TARGET_ARN = 'arn'; // <-- change this
+
+  const sheet   = SpreadsheetApp.getActiveSheet();
+  const header  = sheet.getDataRange().getValues()[0];
+  const colIdx  = header.indexOf('Configuration Item Diff');      // 0-based
+  if (colIdx === -1) {
+    SpreadsheetApp.getUi().alert('Could not find a column named "Configuration Item Diff".');
+    return;
+  }
+
+  const rows      = sheet.getRange(2, colIdx + 1, sheet.getLastRow() - 1).getValues(); // skip header row
+  let   matchCnt  = 0;
+
+  rows.forEach(r => {
+    const cell = r[0];
+    if (cell && cell.toString().indexOf(TARGET_ARN) !== -1) {
+      matchCnt++;
+    }
+  });
+
+  SpreadsheetApp.getUi().alert(`Found ${matchCnt} row${matchCnt === 1 ? '' : 's'} containing the ARN.`);
+  console.log(`Found ${matchCnt} row(s) containing the ARN.`);
+}
