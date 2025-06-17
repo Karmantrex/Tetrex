@@ -1,33 +1,100 @@
-/**
- * Count rows where the target ARN appears anywhere in
- * the “Configuration Item Diff” column.
- *
- * HOW TO USE:
- * 1. Change TARGET_ARN to the exact ARN you want to search for.
- * 2. Press the ► Run button in the Apps Script editor.
- * 3. Authorise the script the first time it runs.
- */
-function countArnMatches() {
-  const TARGET_ARN = 'arn'; // <-- change this
+#!/usr/bin/env python3
+"""
+find_arn.py
 
-  const sheet   = SpreadsheetApp.getActiveSheet();
-  const header  = sheet.getDataRange().getValues()[0];
-  const colIdx  = header.indexOf('Configuration Item Diff');      // 0-based
-  if (colIdx === -1) {
-    SpreadsheetApp.getUi().alert('Could not find a column named "Configuration Item Diff".');
-    return;
-  }
+Scan a CSV for an ARN inside the column "Configuration Item Diff".
+Reports the number of matches, lists the row numbers, and writes
+every matching row (plus the header) to <original>_matches.csv.
 
-  const rows      = sheet.getRange(2, colIdx + 1, sheet.getLastRow() - 1).getValues(); // skip header row
-  let   matchCnt  = 0;
+Usage
+-----
+python find_arn.py [csv_file] [arn_to_search]
 
-  rows.forEach(r => {
-    const cell = r[0];
-    if (cell && cell.toString().indexOf(TARGET_ARN) !== -1) {
-      matchCnt++;
-    }
-  });
+If you omit the args the script falls back to the DEFAULTS block.
+Only the Python standard library is used.
+"""
 
-  SpreadsheetApp.getUi().alert(`Found ${matchCnt} row${matchCnt === 1 ? '' : 's'} containing the ARN.`);
-  console.log(`Found ${matchCnt} row(s) containing the ARN.`);
-}
+import csv
+import sys
+from pathlib import Path
+
+# ---------- DEFAULTS ----------
+CSV_FILE   = "data.csv"   # file name if none is given on the command line
+TARGET_ARN = "arn "
+# ------------------------------
+
+TARGET_COLUMN = "Configuration Item Diff"   # column header to search
+
+def find_matches(csv_path: Path, arn: str):
+    """
+    Return a tuple: (header list, list of (row_number, row_values) with matches).
+    Row numbers are 1-based (header is row 1).
+    """
+    matches = []
+
+    with csv_path.open(newline='', encoding='utf-8') as fh:
+        reader = csv.reader(fh)
+        header = next(reader, None)
+        if header is None:
+            raise ValueError("CSV is empty")
+
+        try:
+            col_idx = header.index(TARGET_COLUMN)
+        except ValueError:
+            raise KeyError(f'Header "{TARGET_COLUMN}" not found in CSV')
+
+        for i, row in enumerate(reader, start=2):          # data rows start at 2
+            try:
+                cell = row[col_idx]
+            except IndexError:
+                # Skip if the row is shorter than expected
+                continue
+
+            if arn in cell:
+                matches.append((i, row))
+
+    return header, matches
+
+def write_matches(csv_path: Path, header, matches):
+    """
+    Write matches (including header) to <original>_matches.csv.
+    Returns the new file's Path.
+    """
+    out_path = csv_path.with_name(f"{csv_path.stem}_matches.csv")
+    with out_path.open('w', newline='', encoding='utf-8') as fh:
+        writer = csv.writer(fh)
+        writer.writerow(header)
+        for _, row in matches:
+            writer.writerow(row)
+    return out_path
+
+def main(argv=None):
+    argv = argv or sys.argv[1:]
+    csv_file = Path(argv[0]) if argv else Path(CSV_FILE)
+    arn      = argv[1] if len(argv) > 1 else TARGET_ARN
+
+    if not csv_file.exists():
+        print(f'Error: "{csv_file}" not found', file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        header, matches = find_matches(csv_file, arn)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    count = len(matches)
+    plural = "" if count == 1 else "s"
+    if count == 0:
+        print(f'No rows contain the ARN: {arn}')
+        return
+
+    # Write out the matching rows
+    out_path = write_matches(csv_file, header, matches)
+
+    row_nums = [str(num) for num, _ in matches]
+    print(f'Found {count} matching row{plural}: {", ".join(row_nums)}')
+    print(f'Matching rows were written to "{out_path.name}"')
+
+if __name__ == "__main__":
+    main()
