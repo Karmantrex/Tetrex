@@ -1,4 +1,2 @@
-This chart displays the Desired Task Count (how many tasks ECS is trying to run) for each service.
-It sums the DesiredTaskCount metric grouped by ServiceName, and shows the average value over time.
-
-For example, if you see 4K for a serviceName, it means ECS aimed to run 4,000 tasks on average during the time window.
+extract_regex targetGroupArn, /targetgroup\/(?P<target_group_name>[^\/]+)/
+filter target_group_name = ""
