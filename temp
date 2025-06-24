@@ -1,3 +1,4 @@
+grep ARTIFACTORY_ ~/.zshrc ~/.zprofile ~/.zshenv ~/.bash_profile ~/.bashrc ~/.profile 2>/dev/null
 find . -maxdepth 2 -type f \( -name ".envrc" -o -name ".env" \)
 
 extract_regex targetGroupArn, /targetgroup\/(?P<target_group_name>[^\/]+)/
