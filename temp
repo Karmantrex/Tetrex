@@ -1,3 +1,11 @@
+sed -i '' '/ARTIFACTORY_USERNAME/d' ~/.zshrc
+sed -i '' '/ARTIFACTORY_PASSWORD/d' ~/.zshrc
+
+source ~/.zshrc
+
+echo $ARTIFACTORY_USERNAME
+echo $ARTIFACTORY_PASSWORD
+
 echo 'export ARTIFACTORY_USERNAME=id' >> ~/.zshrc
 echo 'export ARTIFACTORY_PASSWORD=your_actual_password_here' >> ~/.zshrc
 
