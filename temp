@@ -1,2 +1,3 @@
 launchctl getenv ARTIFACTORY_USERNAME
 launchctl getenv ARTIFACTORY_PASSWORD
+grep -r 'ARTIFACTORY_USERNAME' ~ 2>/dev/null | grep -v 'Binary file'
