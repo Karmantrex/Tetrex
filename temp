@@ -1,2 +1,4 @@
+find . -maxdepth 2 -type f \( -name ".envrc" -o -name ".env" \)
+
 extract_regex targetGroupArn, /targetgroup\/(?P<target_group_name>[^\/]+)/
 filter target_group_name = ""
