@@ -1,3 +1,14 @@
+grep -r 'ARTIFACTORY_' ~ 2>/dev/null | grep -v 'Binary file'
+env | grep ARTIFACTORY
+grep ARTIFACTORY_ /etc/* 2>/dev/null
+
+find . -type f \( -name "Pipfile*" -o -name ".npmrc" -o -name "*.env" \) -exec grep ARTIFACTORY_ {} + 2>/dev/null
+
+grep -r 'ARTIFACTORY_' ~/.* 2>/dev/null | grep -v 'Binary file'
+
+
+
+
 grep ARTIFACTORY_ ~/.zshrc ~/.zprofile ~/.zshenv ~/.bash_profile ~/.bashrc ~/.profile 2>/dev/null
 find . -maxdepth 2 -type f \( -name ".envrc" -o -name ".env" \)
 
