@@ -1,3 +1,7 @@
+echo 'export ARTIFACTORY_USERNAME=id' >> ~/.zshrc
+echo 'export ARTIFACTORY_PASSWORD=your_actual_password_here' >> ~/.zshrc
+
+
 grep -r 'ARTIFACTORY_' ~ 2>/dev/null | grep -v 'Binary file'
 env | grep ARTIFACTORY
 grep ARTIFACTORY_ /etc/* 2>/dev/null
