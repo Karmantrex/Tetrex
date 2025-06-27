@@ -1,3 +1,2 @@
-from "ELB Target Group Metrics"
-| filter metric_name = "RequestCountPerTarget"
-| distinct targetGroupArn
+filter metric_name = "RequestCountPerTarget"
+timechart options(empty_bins:true), count:sum(value), group_by(targetGroupArn)
