@@ -1,6 +1,1 @@
-project in (IDS, AUTH)
-AND creator = 
-AND due <= 15d
-AND statusCategory != Done
-AND labels in ("Container", "Container-Inherited", "Infrastructure")
-ORDER BY labels , due 
+
