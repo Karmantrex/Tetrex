@@ -1,6 +1,6 @@
 function extractUniqueURLsAboveThreshold() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getActiveSheet();          // or ss.getSheetByName("FG926-01…")
+  const sheet = ss.getActiveSheet();          // or ss.getSheetByName("1…")
   const data = sheet.getDataRange().getValues();
 
   const THRESHOLD = 900;
