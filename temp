@@ -1,40 +1,35 @@
-function extractUniqueURLsAboveThreshold() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getActiveSheet();          // or ss.getSheetByName("1…")
-  const data = sheet.getDataRange().getValues();
+function extractUniquePipelineRows() {
+  const ss       = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet    = ss.getActiveSheet();               // or ss.getSheetByName("YOUR_SHEET_NAME")
+  const data     = sheet.getDataRange().getValues();  // includes header
+  const headers  = data[0];
+  const rows     = data.slice(1);
 
-  const THRESHOLD = 900;
-  const uniqueURLs = new Set();
+  const seen     = new Set();
+  const unique   = [];
 
-  // assume header row in row 1, so data starts at data[1]
-  for (let i = 1; i < data.length; i++) {
-    const desc = data[i][4];   // column E = index 4
-    const url  = data[i][5];   // column F = index 5
-
-    if (typeof desc !== 'string') continue;
-
-    // match the number after "is " and before " in"
-    const m = desc.match(/\bis\s+(\d+)\s+in\b/);
-    if (m) {
-      const ttu = parseInt(m[1], 10);
-      if (ttu > THRESHOLD && url) {
-        uniqueURLs.add(url);
-      }
+  // Collect first occurrence of each pipeline_id
+  rows.forEach(row => {
+    const pipelineId = row[1];  // column B → index 1
+    if (pipelineId && !seen.has(pipelineId)) {
+      seen.add(pipelineId);
+      unique.push(row);
     }
-  }
+  });
 
-  // write results into a new (or existing) sheet
-  const outName = "Above900URLs";
+  // Prepare output sheet
+  const outName = "UniquePipelines";
   let out = ss.getSheetByName(outName);
   if (!out) out = ss.insertSheet(outName);
   out.clearContents();
 
-  const urls = Array.from(uniqueURLs).sort();
-  urls.forEach((u, idx) => {
-    out.getRange(idx + 1, 1).setValue(u);
-  });
+  // Write header + unique rows
+  out.getRange(1, 1, 1, headers.length).setValues([headers]);
+  if (unique.length) {
+    out.getRange(2, 1, unique.length, unique[0].length).setValues(unique);
+  }
 
-  // optionally write the count at the top
-  out.getRange(1, 2).setValue("Count:");
-  out.getRange(1, 3).setValue(urls.length);
+  // Report count
+  out.getRange(1, headers.length + 2).setValue("Unique Count:");
+  out.getRange(1, headers.length + 3).setValue(unique.length);
 }
