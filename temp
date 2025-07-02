@@ -1,2 +1,5 @@
-sha256:2576b29c69d10406bf5a6ce047bff740b414d7181e97fa1d97ce6d14af879dad
-sha256:3d8f7e940aa7cf13a532bd095ec5f2d61f7920588675771bfb5da63c3b60cd36"
+@A <- "DesiredTaskCount_from_aws/ECS Container Insights Metrics" {
+  filter metric = "DesiredTaskCount"
+}
+make_col commonServiceName: lower(ServiceName)
+group_by(commonServiceName)
