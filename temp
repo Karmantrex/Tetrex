@@ -23,6 +23,6 @@
 }
 
 <- @CPU_Memory_Names {
-  leftjoin @Desired_Names, on(commonServiceName = @Desired_Names.commonServiceName)
-  filter is_null(@Desired_Names.commonServiceName)
+  leftjoin @Desired_Names, on(commonServiceName = commonServiceName)
+  filter is_null(commonServiceName)
 }
