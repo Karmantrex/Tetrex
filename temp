@@ -1,5 +1,28 @@
-@A <- "DesiredTaskCount_from_aws/ECS Container Insights Metrics" {
+@CPU <- @"CPUUtilization_from_aws/ECS Service Metrics" {
+  filter metric = "CPUUtilization"
+}
+@Memory <- @"MemoryUtilization_from_aws/ECS Service Metrics" {
+  filter metric = "MemoryUtilization"
+}
+@Desired <- @"DesiredTaskCount_from_aws/ECS Container Insights Metrics" {
   filter metric = "DesiredTaskCount"
 }
-make_col commonServiceName: lower(ServiceName)
-group_by(commonServiceName)
+
+@CPU_Memory <- @CPU {
+  union @Memory
+}
+
+@CPU_Memory_Names <- @CPU_Memory {
+  make_col commonServiceName: lower(serviceName)
+  group_by(commonServiceName)
+}
+
+@Desired_Names <- @Desired {
+  make_col commonServiceName: lower(ServiceName)
+  group_by(commonServiceName)
+}
+
+<- @CPU_Memory_Names {
+  leftjoin @Desired_Names on(commonServiceName = @Desired_Names.commonServiceName)
+  filter is_null(@Desired_Names.commonServiceName)
+}
