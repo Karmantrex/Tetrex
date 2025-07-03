@@ -1,15 +1,7 @@
-SELECT latest(cpu.ServiceName) AS service
 FROM Metric
-WHERE 
-  metricName = 'aws.ecs.CPUUtilization.byService' 
-  OR metricName = 'aws.ecs.MemoryUtilization.byService'
+SELECT 
+  filter(count(*), WHERE metricName = 'aws.ecs.CPUUtilization.byService') AS cpu_count,
+  filter(count(*), WHERE metricName = 'aws.ecs.MemoryUtilization.byService') AS mem_count,
+  filter(count(*), WHERE metricName = 'aws.ecs.containerinsights.DesiredTaskCount') AS desired_count
 FACET aws.ecs.ServiceName
 LIMIT MAX
-EXCEPT
-(
-  SELECT latest(desired.ServiceName) AS service
-  FROM Metric
-  WHERE metricName = 'aws.ecs.containerinsights.DesiredTaskCount'
-  FACET aws.ecs.ServiceName
-  LIMIT MAX
-)
