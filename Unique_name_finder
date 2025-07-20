@@ -1,18 +1,3 @@
-#!/bin/bash
 
-# Temporary file to store names
-tmp_file=$(mktemp)
 
-echo "Enter names (press Ctrl+D when done):"
-
-# Read lines from stdin and store in temp file
-while read -r line; do
-    echo "$line" >> "$tmp_file"
-done
-
-# Output unique names (sorted)
-echo -e "\nUnique names:"
-sort "$tmp_file" | uniq
-
-# Clean up
-rm "$tmp_file"
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
