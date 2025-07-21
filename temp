@@ -1,7 +1,6 @@
-FROM Metric
-SELECT 
-  filter(count(*), WHERE metricName = 'aws.ecs.CPUUtilization.byService') AS cpu_count,
-  filter(count(*), WHERE metricName = 'aws.ecs.MemoryUtilization.byService') AS mem_count,
-  filter(count(*), WHERE metricName = 'aws.ecs.containerinsights.DesiredTaskCount') AS desired_count
-FACET aws.ecs.ServiceName
-LIMIT MAX
+docker run --name local-postgres \
+  -e POSTGRES_USER=localuser \
+  -e POSTGRES_PASSWORD=localpass \
+  -e POSTGRES_DB=backstage \
+  -p 5432:5432 \
+  -d postgres
