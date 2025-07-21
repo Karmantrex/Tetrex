@@ -3,4 +3,4 @@ docker run --name local-postgres \
   -e POSTGRES_PASSWORD=localpass \
   -e POSTGRES_DB=backstage \
   -p 5432:5432 \
-  -d postgres
+  -dm/postgres:latest
