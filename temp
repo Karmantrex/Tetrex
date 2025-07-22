@@ -1,6 +1,7 @@
-docker run --name local-postgres \
-  -e POSTGRES_USER=localuser \
-  -e POSTGRES_PASSWORD=localpass \
-  -e POSTGRES_DB=backstage \
-  -p 5432:5432 \
-  -dm/postgres:latest
+ENV_PATH=""
+if [ -f "$ENV_PATH" ]; then
+  echo ".env file exists. Sourcing now..."
+  set -a  # export all variables automatically
+  source "$ENV_PATH"
+  set +a  # turn off auto-export
+fi
