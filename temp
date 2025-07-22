@@ -1,7 +1,8 @@
-ENV_PATH=""
-if [ -f "$ENV_PATH" ]; then
-  echo ".env file exists. Sourcing now..."
-  set -a  # export all variables automatically
-  source "$ENV_PATH"
-  set +a  # turn off auto-export
-fi
+#!/bin/bash
+
+HOST_ENTRY="127.0.0.1 "
+HOST_IPV6="::1 "
+
+# Only add if not already present
+grep -q "$HOST_ENTRY" /etc/hosts || echo "$HOST_ENTRY" | sudo tee -a /etc/hosts
+grep -q "$HOST_IPV6" /etc/hosts || echo "$HOST_IPV6" | sudo tee -a /etc/hosts
