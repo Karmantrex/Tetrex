@@ -1,2 +1,14 @@
-sudo dscacheutil -flushcache
-sudo killall -HUP mDNSResponder
+step_adjustments:
+  # Light load increase: 1000–1500 requests per target
+  - MetricIntervalLowerBound: 0
+    MetricIntervalUpperBound: 500
+    ScalingAdjustment: 1
+
+  # Medium load increase: 1500–2000 requests per target
+  - MetricIntervalLowerBound: 500
+    MetricIntervalUpperBound: 1000
+    ScalingAdjustment: 2
+
+  # Heavy load increase: 2000+ requests per target
+  - MetricIntervalLowerBound: 1000
+    ScalingAdjustment: 3
