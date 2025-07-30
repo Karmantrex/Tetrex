@@ -1,3 +1,13 @@
-Current Issue: 5-minute detection → 12-15 minutes to stabilize
-Enhanced Solution: 1-minute detection → 3-4 minutes to stabilize
-Result: 75% faster response time
+const ivm = require('isolated-vm');
+
+(async () => {
+  const isolate = new ivm.Isolate({ memoryLimit: 8 }); // 8 MB
+  const context = await isolate.createContext();
+  const jail = context.global;
+
+  await jail.set('global', jail.derefInto());
+
+  const script = await isolate.compileScript('1 + 2');
+  const result = await script.run(context);
+  console.log('Result from isolate:', result); // Should print: 3
+})();
