@@ -1,1 +1,2 @@
-mkcert -cert-file certs/local-cert.pem -key-file certs/local-key.pem 
+
+export $(cat .env | xargs) && source .env
