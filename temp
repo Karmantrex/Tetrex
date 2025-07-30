@@ -1,18 +1,1 @@
-const ivm = require('isolated-vm');
-
-(async () => {
-  try {
-    const isolate = new ivm.Isolate({ memoryLimit: 128 });
-    const context = await isolate.createContext();
-    const jail = context.global;
-
-    await jail.set('global', jail.derefInto());
-
-    const script = await isolate.compileScript('1 + 2');
-    const result = await script.run(context);
-
-    console.log('✅ Isolated VM successfully created. Result of 1 + 2 is:', result);
-  } catch (err) {
-    console.error('❌ Error running isolated-vm:', err);
-  }
-})();
+mkcert -cert-file certs/local-cert.pem -key-file certs/local-key.pem 
