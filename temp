@@ -1,13 +1,18 @@
 const ivm = require('isolated-vm');
 
 (async () => {
-  const isolate = new ivm.Isolate({ memoryLimit: 8 }); // 8 MB
-  const context = await isolate.createContext();
-  const jail = context.global;
+  try {
+    const isolate = new ivm.Isolate({ memoryLimit: 128 });
+    const context = await isolate.createContext();
+    const jail = context.global;
 
-  await jail.set('global', jail.derefInto());
+    await jail.set('global', jail.derefInto());
 
-  const script = await isolate.compileScript('1 + 2');
-  const result = await script.run(context);
-  console.log('Result from isolate:', result); // Should print: 3
+    const script = await isolate.compileScript('1 + 2');
+    const result = await script.run(context);
+
+    console.log('✅ Isolated VM successfully created. Result of 1 + 2 is:', result);
+  } catch (err) {
+    console.error('❌ Error running isolated-vm:', err);
+  }
 })();
