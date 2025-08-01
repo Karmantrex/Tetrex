@@ -1,2 +1,5 @@
+🚨 Current Problems
 
-{% log "Autoscaling block rendered successfully with CPU and RequestCountPerTarget policies" %}
+Legacy Step Scaling Pattern: Configuration uses deprecated step_scaling block outside alarms, which can cause unpredictable scaling behavior.
+Policy Conflicts: Both target_tracking and step_scaling are defined for CPU, creating conflicting autoscaling policies that AWS doesn't support.
+Broken Scale-In Logic: RequestCountPerTarget can only scale OUT (when > 1000 requests) but never scales IN because there's no LessThanThreshold alarm. Once scaled out, services stay at high capacity permanently, wasting resources and increasing costs.
