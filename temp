@@ -1,1 +1,4 @@
-saf
+Removed legacy step_scaling block and target_tracking section
+Added proper bidirectional scaling for RequestCountPerTarget (scale-out at >1000, scale-in at <800)
+Implemented CPU step scaling alarms to replace target tracking (scale-out at >80%, scale-in at <60%)
+Applied modern alarm-level step scaling pattern
