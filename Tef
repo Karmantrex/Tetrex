@@ -1,84 +1,72 @@
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('Rollups')
-    .addItem('Build QID rollup', 'buildQidRollup')
-    .addToUi();
-}
-
 function buildQidRollup() {
-  const ss = SpreadsheetApp.getActive();
-  const sourceName = 'Raw';          // change if your sheet name differs
-  const targetName = 'QID_Rollup';
+  // 1) Put your spreadsheet ID here. From the URL between /d/ and /edit
+  const SPREADSHEET_ID = 'PASTE_SHEET_ID_HERE';
 
-  const keepHeaders = ['QID','','COMPONENT','','','','KB_VULN_TITLE'];
+  // 2) Exact tab names
+  const SOURCE_SHEET = 'Raw';          // change to your July tab name
+  const TARGET_SHEET = 'QID_Rollup';
 
-  const src = ss.getSheetByName(sourceName);
-  if (!src) throw new Error('Source sheet "Raw" not found');
+  // 3) Exact headers you want in the output, case and spacing must match
+  const keepHeaders = [
+    'QID',
+    '___',
+    'COMPONENT',
+    'TEAM',
+    'SNAP_DT',
+    'DUE_DATE',
+    'KB_VULN_TITLE',
+    'RISK_LEVEL'
+  ];
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const src = ss.getSheetByName(SOURCE_SHEET);
+  if (!src) throw new Error(`Source tab not found: ${SOURCE_SHEET}`);
 
   const data = src.getDataRange().getValues();
   if (data.length < 2) throw new Error('No data rows found');
 
-  // Map column names to indexes
   const header = data[0].map(h => String(h).trim());
   const idx = {};
   keepHeaders.forEach(h => {
     const i = header.indexOf(h);
-    if (i === -1) throw new Error(`Missing required column: ${h}`);
+    if (i === -1) throw new Error(`Missing required column in header: ${h}`);
     idx[h] = i;
   });
 
-  // Build unique rows keyed by QID + TEAM + COMPONENT
   const seen = new Map();
   for (let r = 1; r < data.length; r++) {
     const row = data[r];
-
-    const qid   = String(row[idx['QID']]).trim();
-    const team  = String(row[idx['TEAM']]).trim();
-    const comp  = String(row[idx['COMPONENT']]).trim();
-
-    // Skip empty QID or TEAM or COMPONENT if you want only actionable items
+    const qid  = String(row[idx['QID']]).trim();
+    const team = String(row[idx['TEAM']]).trim();
+    const comp = String(row[idx['COMPONENT']]).trim();
     if (!qid || !team || !comp) continue;
 
     const key = [qid, team, comp].join('||');
-
-    // Only keep the first encounter for this QID+TEAM+COMPONENT
     if (!seen.has(key)) {
-      seen.set(key, [
-        row[idx['QID']],
-        row[idx['']],
-        row[idx['']],
-        row[idx['']],
-        row[idx['']],
-        row[idx['']],
-        row[idx['']]
-      ]);
+      seen.set(key, keepHeaders.map(h => row[idx[h]]));
     }
   }
 
-  // Sort by TEAM, then COMPONENT, then QID, then DUE_DATE
   const out = Array.from(seen.values()).sort((a, b) => {
-    const teamCmp = String(a[3]).localeCompare(String(b[3]));
-    if (teamCmp !== 0) return teamCmp;
-    const compCmp = String(a[2]).localeCompare(String(b[2]));
-    if (compCmp !== 0) return compCmp;
-    const qidCmp = String(a[0]).localeCompare(String(b[0]));
-    if (qidCmp !== 0) return qidCmp;
-    // DUE_DATE is index 5
-    return new Date(a[5]) - new Date(b[5]);
+    const teamCmp = String(a[3]).localeCompare(String(b[3])); if (teamCmp) return teamCmp;
+    const compCmp = String(a[2]).localeCompare(String(b[2])); if (compCmp) return compCmp;
+    const qidCmp  = String(a[0]).localeCompare(String(b[0])); if (qidCmp)  return qidCmp;
+    return new Date(a[5]) - new Date(b[5]); // DUE_DATE
   });
 
-  // Write to target sheet
-  let tgt = ss.getSheetByName(targetName);
-  if (!tgt) tgt = ss.insertSheet(targetName); else tgt.clear();
+  // Recreate target tab so you actually see it
+  let tgt = ss.getSheetByName(TARGET_SHEET);
+  if (tgt) ss.deleteSheet(tgt);
+  tgt = ss.insertSheet(TARGET_SHEET);
 
   tgt.getRange(1, 1, 1, keepHeaders.length).setValues([keepHeaders]);
-  if (out.length > 0) {
+  if (out.length) {
     tgt.getRange(2, 1, out.length, keepHeaders.length).setValues(out);
   }
-
-  // Freeze header and add filters
   tgt.setFrozenRows(1);
   tgt.getDataRange().createFilter();
+  SpreadsheetApp.flush();
 
-  SpreadsheetApp.getActive().toast(`QID rollup built with ${out.length} rows`);
+  ss.toast(`QID_Rollup created with ${out.length} rows`, 'Done', 5);
+  Logger.log(`Created tab "${TARGET_SHEET}" with ${out.length} rows`);
 }
