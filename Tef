@@ -1,41 +1,69 @@
-function sortToNewTabByQID() {
-  // CHANGE THIS to your exact source tab name
-  const SOURCE_TAB = '';
+function sortToNewTabByQID_resilient() {
+  const SOURCE_TAB = '';   // new new
   const TARGET_TAB = 'Sorted_By_QID';
+  const HEADER_LOOKAHEAD_ROWS = 5;       // search first N rows for the header row
+  const QID_ALIASES = ['qid', 'qualys id']; // accepted header names, case-insensitive
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const src = ss.getSheetByName(SOURCE_TAB);
   if (!src) throw new Error(`Source tab not found: ${SOURCE_TAB}`);
 
-  const values = src.getDataRange().getValues();
+  const range = src.getDataRange();
+  const values = range.getValues();
   if (values.length < 2) throw new Error('No data to sort');
 
-  // Find the QID column by header name, case-insensitive, trims spaces
-  const header = values[0].map(h => String(h).trim());
-  const qidIndex0 = header.findIndex(h => h.toLowerCase() === 'qid'); // 0-based
-  if (qidIndex0 === -1) throw new Error('QID column not found in header row');
+  // 1) Find header row and QID column
+  let headerRowIndex = -1; // 0-based
+  let qidColIndex = -1;    // 0-based
+  const rowsToScan = Math.min(HEADER_LOOKAHEAD_ROWS, values.length);
 
-  // Recreate target
+  for (let r = 0; r < rowsToScan; r++) {
+    const header = values[r].map(h => String(h).trim());
+    const lowered = header.map(h => h.toLowerCase());
+    for (const alias of QID_ALIASES) {
+      const i = lowered.indexOf(alias);
+      if (i !== -1) {
+        headerRowIndex = r;
+        qidColIndex = i;
+        break;
+      }
+    }
+    if (qidColIndex !== -1) break;
+  }
+
+  if (headerRowIndex === -1 || qidColIndex === -1) {
+    throw new Error('Could not find a QID column. Make sure the header contains "QID".');
+  }
+
+  // 2) Split header and data rows
+  const header = values[headerRowIndex];
+  const dataRows = values.slice(headerRowIndex + 1).filter(row => row.some(cell => cell !== ''));
+
+  // 3) Sort by QID with numeric-first logic
+  function parseQid(v) {
+    const s = String(v ?? '').trim();
+    const n = Number(s);
+    return { num: isNaN(n) ? NaN : n, str: s };
+  }
+  dataRows.sort((a, b) => {
+    const qa = parseQid(a[qidColIndex]);
+    const qb = parseQid(b[qidColIndex]);
+    const aNum = !isNaN(qa.num);
+    const bNum = !isNaN(qb.num);
+    if (aNum && bNum) return qa.num - qb.num;
+    if (aNum && !bNum) return -1;
+    if (!aNum && bNum) return 1;
+    return qa.str.localeCompare(qb.str);
+  });
+
+  // 4) Write to new tab
   let tgt = ss.getSheetByName(TARGET_TAB);
   if (tgt) ss.deleteSheet(tgt);
   tgt = ss.insertSheet(TARGET_TAB);
 
-  // Paste everything
-  tgt.getRange(1, 1, values.length, values[0].length).setValues(values);
+  const out = [header, ...dataRows];
+  tgt.getRange(1, 1, out.length, out[0].length).setValues(out);
   tgt.setFrozenRows(1);
-
-  // Now sort on the target using Google Sheets native sort
-  // data range excludes the header row
-  const lastRow = tgt.getLastRow();
-  const lastCol = tgt.getLastColumn();
-  if (lastRow > 1) {
-    const dataRange = tgt.getRange(2, 1, lastRow - 1, lastCol);
-    // qidIndex0 is 0-based relative to the sheet. Range.sort needs 1-based index relative to the range.
-    const qidColRelative = qidIndex0 + 1;
-    dataRange.sort([{ column: qidColRelative, ascending: true }]);
-  }
-
-  // Optional: add a filter so you can slice and dice
   tgt.getDataRange().createFilter();
   SpreadsheetApp.flush();
 }
