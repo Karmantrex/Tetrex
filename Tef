@@ -1,2 +1,86 @@
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Utilities')
+    .addItem('Sort by QID…', 'sortByQidWithPrompt')
+    .addToUi();
+}
 
-AND (description ~ "58596" OR comment ~ "58596" OR summary ~ "58596")
+// Prompts for tab name and sort direction, then sorts by QID in place.
+function sortByQidWithPrompt() {
+  const ui = SpreadsheetApp.getUi();
+
+  // 1) Ask for tab name
+  const tabResp = ui.prompt('Sort by QID', 'Enter the tab name to sort (exact, case sensitive):', ui.ButtonSet.OK_CANCEL);
+  if (tabResp.getSelectedButton() !== ui.Button.OK) return;
+  const tabName = tabResp.getResponseText().trim();
+  if (!tabName) {
+    ui.alert('Missing tab name.');
+    return;
+  }
+
+  // 2) Ask for direction
+  const dirResp = ui.prompt('Sort direction', 'Type ASC for ascending or DESC for descending:', ui.ButtonSet.OK_CANCEL);
+  if (dirResp.getSelectedButton() !== ui.Button.OK) return;
+  const dirText = String(dirResp.getResponseText() || '').trim().toUpperCase();
+  const ascending = dirText === '' || dirText === 'ASC' || dirText === 'A';
+
+  try {
+    sortByQid(tabName, ascending);
+    ui.alert(`Sorted "${tabName}" by QID ${ascending ? 'ascending' : 'descending'}.`);
+  } catch (e) {
+    ui.alert(`Error: ${e.message}`);
+  }
+}
+
+/**
+ * Core sorter. Keeps all columns, finds QID column by header, and sorts all rows except header.
+ * @param {string} tabName - exact tab name to sort
+ * @param {boolean} ascending - true for ascending, false for descending
+ */
+function sortByQid(tabName, ascending) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(tabName);
+  if (!sheet) throw new Error(`Tab not found: ${tabName}`);
+
+  const range = sheet.getDataRange();
+  const values = range.getValues();
+  if (values.length < 2) throw new Error('No data rows to sort.');
+
+  // Map header -> index
+  const header = values[0].map(h => String(h).trim());
+  // Case-insensitive match for safety
+  const qidColIndex = findHeaderIndex(header, ['QID']);
+  if (qidColIndex === -1) {
+    throw new Error('QID header not found. Make sure the first row contains a "QID" column.');
+  }
+
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2) throw new Error('Only header row found, nothing to sort.');
+
+  // Data range excludes header row
+  const dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
+
+  // Convert QID column to text for stable sorting if mixed types
+  // Not strictly required, but helps when QID looks numeric in some rows and text in others
+  // We will rely on Range.sort though, so we do not mutate values here.
+
+  // Range.sort expects column positions relative to the sheet or the range.
+  // In Apps Script, when you call sort on a Range, the "column" in the spec is relative to that range.
+  // Our dataRange starts at column 1, so using (qidColIndex + 1) would be wrong.
+  // qidColIndex is zero-based over the header row which starts at column 1 in the sheet
+  // Since dataRange also starts at column 1, we need 1-based index relative to the range:
+  const relativeQidCol = qidColIndex + 1;
+
+  dataRange.sort([{ column: relativeQidCol, ascending }]);
+}
+
+// Helper: find header index by any of the provided names (case-insensitive)
+function findHeaderIndex(headerRow, names) {
+  const lowered = headerRow.map(h => h.toLowerCase());
+  for (const n of names) {
+    const i = lowered.indexOf(String(n).toLowerCase());
+    if (i !== -1) return i;
+  }
+  return -1;
+}
