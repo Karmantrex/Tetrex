@@ -1,39 +1,41 @@
-function sortSheetByQID_NewTab() {
-  // CHANGE THIS to your exact tab name
+function sortToNewTabByQID() {
+  // CHANGE THIS to your exact source tab name
   const SOURCE_TAB = '';
-  const TARGET_TAB = 'Sorted_By_QID'; // Name for the new tab
+  const TARGET_TAB = 'Sorted_By_QID';
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sourceSheet = ss.getSheetByName(SOURCE_TAB);
-  if (!sourceSheet) throw new Error(`Source tab not found: ${SOURCE_TAB}`);
+  const src = ss.getSheetByName(SOURCE_TAB);
+  if (!src) throw new Error(`Source tab not found: ${SOURCE_TAB}`);
 
-  const data = sourceSheet.getDataRange().getValues();
-  if (data.length < 2) throw new Error('No data to sort');
+  const values = src.getDataRange().getValues();
+  if (values.length < 2) throw new Error('No data to sort');
 
-  // Find QID column index from header row
-  const header = data[0].map(h => String(h).trim());
-  const qidIndex = header.findIndex(h => h.toLowerCase() === 'qid');
-  if (qidIndex === -1) throw new Error('QID column not found');
+  // Find the QID column by header name, case-insensitive, trims spaces
+  const header = values[0].map(h => String(h).trim());
+  const qidIndex0 = header.findIndex(h => h.toLowerCase() === 'qid'); // 0-based
+  if (qidIndex0 === -1) throw new Error('QID column not found in header row');
 
-  // Sort all rows except header
-  const headerRow = [data[0]];
-  const dataRows = data.slice(1);
-  dataRows.sort((a, b) => {
-    const qidA = a[qidIndex];
-    const qidB = b[qidIndex];
-    return qidA > qidB ? 1 : qidA < qidB ? -1 : 0; // ascending
-  });
+  // Recreate target
+  let tgt = ss.getSheetByName(TARGET_TAB);
+  if (tgt) ss.deleteSheet(tgt);
+  tgt = ss.insertSheet(TARGET_TAB);
 
-  // Delete existing target tab if present
-  let targetSheet = ss.getSheetByName(TARGET_TAB);
-  if (targetSheet) ss.deleteSheet(targetSheet);
+  // Paste everything
+  tgt.getRange(1, 1, values.length, values[0].length).setValues(values);
+  tgt.setFrozenRows(1);
 
-  // Create new tab and paste sorted data
-  targetSheet = ss.insertSheet(TARGET_TAB);
-  targetSheet.getRange(1, 1, headerRow.length, headerRow[0].length).setValues(headerRow);
-  targetSheet.getRange(2, 1, dataRows.length, dataRows[0].length).setValues(dataRows);
+  // Now sort on the target using Google Sheets native sort
+  // data range excludes the header row
+  const lastRow = tgt.getLastRow();
+  const lastCol = tgt.getLastColumn();
+  if (lastRow > 1) {
+    const dataRange = tgt.getRange(2, 1, lastRow - 1, lastCol);
+    // qidIndex0 is 0-based relative to the sheet. Range.sort needs 1-based index relative to the range.
+    const qidColRelative = qidIndex0 + 1;
+    dataRange.sort([{ column: qidColRelative, ascending: true }]);
+  }
 
-  targetSheet.setFrozenRows(1);
-  targetSheet.getDataRange().createFilter();
+  // Optional: add a filter so you can slice and dice
+  tgt.getDataRange().createFilter();
   SpreadsheetApp.flush();
 }
