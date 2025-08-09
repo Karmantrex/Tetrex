@@ -1,6 +1,2 @@
-project in (, )
-AND creator = 
-AND statusCategory != Done
-AND status NOT IN (Closed, "Ready for Acceptance")
-AND labels IN ("Container","Container-Inherited","Infrastructure")
+
 AND (description ~ "58596" OR comment ~ "58596" OR summary ~ "58596")
