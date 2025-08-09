@@ -1,12 +1,13 @@
-function sortSheetByQID() {
+function sortSheetByQID_NewTab() {
   // CHANGE THIS to your exact tab name
-  const TAB_NAME = '';
+  const SOURCE_TAB = '';
+  const TARGET_TAB = 'Sorted_By_QID'; // Name for the new tab
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(TAB_NAME);
-  if (!sheet) throw new Error(`Tab not found: ${TAB_NAME}`);
+  const sourceSheet = ss.getSheetByName(SOURCE_TAB);
+  if (!sourceSheet) throw new Error(`Source tab not found: ${SOURCE_TAB}`);
 
-  const data = sheet.getDataRange().getValues();
+  const data = sourceSheet.getDataRange().getValues();
   if (data.length < 2) throw new Error('No data to sort');
 
   // Find QID column index from header row
@@ -14,9 +15,25 @@ function sortSheetByQID() {
   const qidIndex = header.findIndex(h => h.toLowerCase() === 'qid');
   if (qidIndex === -1) throw new Error('QID column not found');
 
-  // Sort everything except header row, based on QID column
-  const rangeToSort = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn());
-  rangeToSort.sort({ column: qidIndex + 1, ascending: true });
+  // Sort all rows except header
+  const headerRow = [data[0]];
+  const dataRows = data.slice(1);
+  dataRows.sort((a, b) => {
+    const qidA = a[qidIndex];
+    const qidB = b[qidIndex];
+    return qidA > qidB ? 1 : qidA < qidB ? -1 : 0; // ascending
+  });
 
+  // Delete existing target tab if present
+  let targetSheet = ss.getSheetByName(TARGET_TAB);
+  if (targetSheet) ss.deleteSheet(targetSheet);
+
+  // Create new tab and paste sorted data
+  targetSheet = ss.insertSheet(TARGET_TAB);
+  targetSheet.getRange(1, 1, headerRow.length, headerRow[0].length).setValues(headerRow);
+  targetSheet.getRange(2, 1, dataRows.length, dataRows[0].length).setValues(dataRows);
+
+  targetSheet.setFrozenRows(1);
+  targetSheet.getDataRange().createFilter();
   SpreadsheetApp.flush();
 }
