@@ -1,69 +1,47 @@
-function sortToNewTabByQID_resilient() {
-  const SOURCE_TAB = '';   // new new
-  const TARGET_TAB = 'Sorted_By_QID';
-  const HEADER_LOOKAHEAD_ROWS = 5;       // search first N rows for the header row
-  const QID_ALIASES = ['qid', 'qualys id']; // accepted header names, case-insensitive
+function dedupeByQID_NewTab() {
+  // CHANGE THIS to your exact source tab name
+  const SOURCE_TAB = '';
+  // New tab to write results
+  const TARGET_TAB = 'Unique_QIDs';
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const src = ss.getSheetByName(SOURCE_TAB);
   if (!src) throw new Error(`Source tab not found: ${SOURCE_TAB}`);
 
-  const range = src.getDataRange();
-  const values = range.getValues();
-  if (values.length < 2) throw new Error('No data to sort');
+  const values = src.getDataRange().getValues();
+  if (values.length < 2) throw new Error('No data rows found');
 
-  // 1) Find header row and QID column
-  let headerRowIndex = -1; // 0-based
-  let qidColIndex = -1;    // 0-based
-  const rowsToScan = Math.min(HEADER_LOOKAHEAD_ROWS, values.length);
+  // Find QID column in header (case-insensitive, trims spaces)
+  const header = values[0].map(h => String(h).trim());
+  const qidIdx = header.findIndex(h => h.toLowerCase() === 'qid');
+  if (qidIdx === -1) throw new Error('QID column not found in header row');
 
-  for (let r = 0; r < rowsToScan; r++) {
-    const header = values[r].map(h => String(h).trim());
-    const lowered = header.map(h => h.toLowerCase());
-    for (const alias of QID_ALIASES) {
-      const i = lowered.indexOf(alias);
-      if (i !== -1) {
-        headerRowIndex = r;
-        qidColIndex = i;
-        break;
-      }
-    }
-    if (qidColIndex !== -1) break;
+  // Build output: header + first occurrence row per QID
+  const seen = new Set();
+  const out = [header];
+
+  for (let r = 1; r < values.length; r++) {
+    const row = values[r];
+    const qid = String(row[qidIdx]).trim();
+    if (!qid) continue;                 // skip empty QID
+    if (seen.has(qid)) continue;        // already captured a row for this QID
+    seen.add(qid);
+    out.push(row);
   }
 
-  if (headerRowIndex === -1 || qidColIndex === -1) {
-    throw new Error('Could not find a QID column. Make sure the header contains "QID".');
-  }
-
-  // 2) Split header and data rows
-  const header = values[headerRowIndex];
-  const dataRows = values.slice(headerRowIndex + 1).filter(row => row.some(cell => cell !== ''));
-
-  // 3) Sort by QID with numeric-first logic
-  function parseQid(v) {
-    const s = String(v ?? '').trim();
-    const n = Number(s);
-    return { num: isNaN(n) ? NaN : n, str: s };
-  }
-  dataRows.sort((a, b) => {
-    const qa = parseQid(a[qidColIndex]);
-    const qb = parseQid(b[qidColIndex]);
-    const aNum = !isNaN(qa.num);
-    const bNum = !isNaN(qb.num);
-    if (aNum && bNum) return qa.num - qb.num;
-    if (aNum && !bNum) return -1;
-    if (!aNum && bNum) return 1;
-    return qa.str.localeCompare(qb.str);
-  });
-
-  // 4) Write to new tab
+  // Recreate target tab
   let tgt = ss.getSheetByName(TARGET_TAB);
   if (tgt) ss.deleteSheet(tgt);
   tgt = ss.insertSheet(TARGET_TAB);
 
-  const out = [header, ...dataRows];
+  // Write results
   tgt.getRange(1, 1, out.length, out[0].length).setValues(out);
   tgt.setFrozenRows(1);
   tgt.getDataRange().createFilter();
+
+  // Optional: quick counts for sanity
+  tgt.getRange(1, out[0].length + 2).setValue('Unique QIDs');
+  tgt.getRange(2, out[0].length + 2).setValue(seen.size);
+
   SpreadsheetApp.flush();
 }
