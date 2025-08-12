@@ -1,9 +1,1 @@
-# What trust file is Node using right now?
-echo "$NODE_EXTRA_CA_CERTS" && ls -l "$NODE_EXTRA_CA_CERTS"
-
-# Does your backend config point to real files?
-yq '.backend.https.certificate, .backend.https.key' app-config.local.yaml
-ls -l <those two paths>
-
-# Do the server cert SANs match your hostnames?
-openssl x509 -in <server-cert.pem> -noout -text | grep -A1 "Subject Alternative Name"
+openssl x509 -in / -noout -text | head -n 20
