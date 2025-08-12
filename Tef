@@ -1,1 +1,1 @@
-openssl x509 -in / -noout -text | head -n 20
+openssl s_client -connect localhost:7007 -servername localhost -showcerts </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates
