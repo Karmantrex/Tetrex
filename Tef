@@ -1,13 +1,4 @@
-
-# regenerate key + CSR (no SANs)
 openssl req -new -newkey rsa:2048 -nodes \
-  -keyout certs/local.key \
-  -out    certs/local.csr \
-  -subj "/C=US/ST=VA/L=City/O=Company/OU=Unit/CN="
-
-# sanity checks
-openssl req -in certs/local.csr -noout -subject
-# expect CN=
-
-openssl req -in certs/local.csr -noout -text | grep -A2 "Subject Alternative Name"
-# expect no output (no SANs)
+  -keyout local-key.pem \
+  -out local.csr \
+  -subj "/C=US/ST=VA/L=City/O=Company/OU=Unit/CN=
