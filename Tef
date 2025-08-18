@@ -1,4 +1,14 @@
-openssl req -new -newkey rsa:2048 -nodes \
-  -keyout local-key.pem \
-  -out local.csr \
-  -subj "/C=US/ST=VA/L=City/O=Company/OU=Unit/CN=
+# --- Trust corporate CA early (before any network operations) ---
+COPY certs/capitalone.crt /usr/local/share/ca-certificates/
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
+    update-ca-certificates
+
+# Point common tools at the system trust store
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+    CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
+    GIT_SSL_CAINFO=/etc/ssl/certs/ca-certificates.crt \
+    NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+
+# npm also honors this explicitly
+RUN npm config -g set cafile /etc/ssl/certs/ca-certificates.crt
