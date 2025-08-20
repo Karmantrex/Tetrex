@@ -1,1 +1,4 @@
-openssl crl2pkcs7 -nocrl -certfile local-cert.pem | openssl pkcs7 -print_certs -noout
+openssl req -new -newkey rsa:2048 -nodes \
+  -keyout local-key.pem \
+  -out local.csr \
+  -subj "/C=US/ST=VA/L=City/O=Company/OU=Unit/CN="
