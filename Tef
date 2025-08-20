@@ -1,5 +1,1 @@
-openssl x509 -in local-cert.pem -noout -subject -issuer -text | grep -A1 "Subject Alternative Name"
-
-# hashes must match:
-openssl x509 -noout -modulus -in local-cert.pem | shasum
-openssl rsa  -noout -modulus -in local-key.pem  | shasum
+openssl crl2pkcs7 -nocrl -certfile local-cert.pem | openssl pkcs7 -print_certs -noout
