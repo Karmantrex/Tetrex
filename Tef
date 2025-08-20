@@ -1,5 +1,5 @@
-openssl x509 -in certs/local-cert.pem -noout -subject -issuer -text | grep -A1 "Subject Alternative Name"
-# should show CN/SAN = devnavhub-local.capitalone.com
-openssl x509 -noout -modulus -in certs/local-cert.pem | shasum
-openssl rsa  -noout -modulus -in certs/local-key.pem  | shasum
-# the two hashes must match
+openssl x509 -in local-cert.pem -noout -subject -issuer -text | grep -A1 "Subject Alternative Name"
+
+# hashes must match:
+openssl x509 -noout -modulus -in local-cert.pem | shasum
+openssl rsa  -noout -modulus -in local-key.pem  | shasum
