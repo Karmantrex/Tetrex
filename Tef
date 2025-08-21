@@ -1,4 +1,4 @@
-openssl req -new -newkey rsa:2048 -nodes \
-  -keyout local-key.pem \
-  -out local.csr \
-  -subj "/C=US/ST=VA/L=City/O=Company/OU=Unit/CN="
+# ---- Base utilities used by npm scripts (nproc, GNU xargs) ----
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends coreutils findutils && \
+    apt-get clean && \
