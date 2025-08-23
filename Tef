@@ -1,1 +1,1 @@
-rg -n --no-ignore -S "FargateGear|autoscaling|min_capacity|max_capacity|application_configuration" Q -g '!**/Q/**'
+rg -n --no-ignore -S "Q|autoscaling|min_capacity|max_capacity|application_configuration" Q -g '!**/Q/**'
