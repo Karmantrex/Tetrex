@@ -1,4 +1,1 @@
-# ---- Base utilities used by npm scripts (nproc, GNU xargs) ----
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends coreutils findutils && \
-    apt-get clean && \
+rg -n --no-ignore -S "FargateGear|autoscaling|min_capacity|max_capacity|application_configuration" Q -g '!**/Q/**'
