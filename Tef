@@ -1,10 +1,43 @@
-function sortByTeamAZ() {
+/**
+ * Delete duplicate rows where BOTH:
+ *  - Column F (Team) value matches
+ *  - Column D (Labels) value matches
+ * Keeps the first occurrence; removes subsequent duplicates.
+ */
+function deleteDupesByTeamAndLabel() {
   const sheet = SpreadsheetApp.getActiveSheet();
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow < 2) return; // only header present, nothing to sort
+  if (lastRow < 2) return; // no data
 
-  // Sort all data rows (2..lastRow) across all columns (A..lastCol) by column F
-  const dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
-  dataRange.sort([{ column: 6, ascending: true }]);  // column F = 6
+  const TEAM_COL = 6;   // F
+  const LABEL_COL = 4;  // D
+
+  // Grab all data rows (excluding header)
+  const range = sheet.getRange(2, 1, lastRow - 1, lastCol);
+  const values = range.getDisplayValues(); // display values treat "" from formulas as blank
+
+  // Build a set of seen (team|label) keys
+  const seen = new Set();
+  const rowsToDelete = [];
+
+  for (let r = 0; r < values.length; r++) {
+    const team  = (values[r][TEAM_COL - 1] || "").trim();
+    const label = (values[r][LABEL_COL - 1] || "").trim();
+
+    // If either team or label is truly blank, treat as unique and keep
+    const key = `${team}||${label}`; // exact match (case-sensitive). Change to toLowerCase() for case-insensitive.
+
+    if (seen.has(key)) {
+      // mark this row (sheet row index) to delete
+      rowsToDelete.push(r + 2); // +2 because data starts at row 2
+    } else {
+      seen.add(key);
+    }
+  }
+
+  // Delete from bottom up so indexes don't shift
+  for (let i = rowsToDelete.length - 1; i >= 0; i--) {
+    sheet.deleteRow(rowsToDelete[i]);
+  }
 }
