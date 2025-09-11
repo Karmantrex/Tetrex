@@ -1,85 +1,82 @@
 /**
- * Build a "1x SLA" sheet from the active sheet.
- * 1x SLA = Created < Due Date AND Resolved > Due Date
- * - Finds headers: "Created", "Resolved", "Due Date" (or "Due"), case-insensitive
- * - Copies matching rows (all columns) to a sheet named "1x SLA"
- * - Original sheet is left unchanged
+ * Build a "1x SLA miss" sheet from the active sheet.
+ * Condition: DUE_FINDINGS > DUE_FINDINGS_REMEDIATED
+ * - Detects headers case-insensitively and tolerates spaces/underscores.
+ * - Copies full rows (all columns) for matches.
  */
-function buildOneXSLA() {
-  const DEST_SHEET_NAME = "1x SLA";
+function buildOneXSLAFromFindings() {
+  const DEST_NAME = "1x SLA miss";
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const src = ss.getActiveSheet();
 
   const lastRow = src.getLastRow();
   const lastCol = src.getLastColumn();
-  if (lastRow < 2) return; // nothing to do
+  if (lastRow < 2) return; // nothing to process
 
-  // Locate header columns (row 1)
+  // Read header row
   const headers = src.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
-  const hLower  = headers.map(h => (h || "").trim().toLowerCase());
 
-  const createdCol  = hLower.findIndex(h => h === "created") + 1;
-  const resolvedCol = hLower.findIndex(h => h === "resolved" || h === "resolution date") + 1;
-  const dueCol      = hLower.findIndex(h => h === "due date" || h === "due") + 1;
+  // Normalize helper: lower, remove spaces/underscores/slashes
+  const norm = s => String(s || "")
+    .toLowerCase()
+    .replace(/[\s_\/]+/g, "");
 
-  if (!createdCol || !resolvedCol || !dueCol) {
-    throw new Error('Missing required headers: "Created", "Resolved", "Due Date" (case-insensitive).');
+  // Find the two columns we need
+  const hNorm = headers.map(norm);
+
+  // Accept common header variants
+  const dueIdx = hNorm.findIndex(h =>
+    h === "duefindings" || h === "duefinding" || h === "due_vulnerabilities"
+  );
+  const remIdx = hNorm.findIndex(h =>
+    h === "duefindingsremediated" || h === "duefindingsfixed" || h === "duefixedremediated"
+  );
+
+  if (dueIdx === -1 || remIdx === -1) {
+    throw new Error('Could not find "DUE FINDINGS" and/or "DUE FINDINGS REMEDIATED" columns (case-insensitive).');
   }
 
+  const dueCol = dueIdx + 1;
+  const remCol = remIdx + 1;
+
   // Read all data rows
-  const data = src.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  const data = src.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
 
-  // Collect 1x SLA rows
-  const oneXSLA = [];
-  for (let i = 0; i < data.length; i++) {
-    const row = data[i];
+  // Collect rows where DUE_FINDINGS > DUE_FINDINGS_REMEDIATED
+  const matches = [];
+  for (let r = 0; r < data.length; r++) {
+    const row = data[r];
+    const due = toNumber_(row[dueCol - 1]);
+    const rem = toNumber_(row[remCol - 1]);
 
-    const created  = toDate_(row[createdCol  - 1]);
-    const due      = toDate_(row[dueCol      - 1]);
-    const resolved = toDate_(row[resolvedCol - 1]);
-
-    // 1x SLA condition: Created < Due AND Resolved > Due
-    if (created && due && resolved && created.getTime() < due.getTime() && resolved.getTime() > due.getTime()) {
-      oneXSLA.push(row);
+    if (isFinite(due) && isFinite(rem) && due > rem) {
+      matches.push(row);
     }
   }
 
-  // Create/Clear destination sheet and write results (headers + rows)
-  const dest = getOrCreateAndClear_(ss, DEST_SHEET_NAME);
+  // Create/Clear destination and write output
+  const dest = getOrCreateAndClear_(ss, DEST_NAME);
   dest.getRange(1, 1, 1, lastCol).setValues([headers]);
   dest.setFrozenRows(1);
 
-  if (oneXSLA.length) {
-    dest.getRange(2, 1, oneXSLA.length, lastCol).setValues(oneXSLA);
+  if (matches.length) {
+    dest.getRange(2, 1, matches.length, lastCol).setValues(matches);
   }
 }
 
-/* ---------- helpers ---------- */
+/* ===== Helpers ===== */
 
-// Convert a cell value to a Date object or null if unparsable.
-function toDate_(v) {
-  if (v instanceof Date && !isNaN(v)) return v;
-
-  if (typeof v === "number") {
-    // Excel/Sheets serial to JS Date
-    const ms = (v - 25569) * 24 * 60 * 60 * 1000;
-    const d = new Date(ms);
-    return isNaN(d) ? null : d;
-  }
-
-  if (typeof v === "string") {
-    const s = v.trim();
-    if (!s) return null;
-    // Native parse handles formats like "14/Aug/25 12:00"
-    const d = new Date(s);
-    return isNaN(d) ? null : d;
-  }
-
-  return null;
+// Coerce a value (string like "1,234", number, blank) to a Number; blanks -> 0
+function toNumber_(v) {
+  if (typeof v === "number") return v;
+  if (v == null) return 0;
+  const s = String(v).trim();
+  if (!s) return 0;
+  const n = Number(s.replace(/,/g, ""));
+  return isNaN(n) ? 0 : n;
 }
 
-// Get or create a sheet by name and clear it.
 function getOrCreateAndClear_(ss, name) {
   let sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
