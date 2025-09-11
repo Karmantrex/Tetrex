@@ -1,5 +1,117 @@
-creator = SecureGuardians
-AND created >= "2025-08-01" AND created < "2025-09-01"
-AND due     >= "2025-08-01" AND due     < "2025-09-01"
-AND labels in ("Container", "Container-Inherited", "Infrastructure")
-ORDER BY due ASC, created ASC
+/**
+ * Split rows into three sheets:
+ *  - "Normal Vulnerability"          : Due Date  > Created
+ *  - "Born Overdue Vulnerability"    : Due Date  < Created
+ *  - "Analysis"                      : anything else (blank/invalid/equal)
+ *
+ * Looks for headers "Created" and "Due Date" (case-insensitive).
+ */
+function splitNormalBornOverdueAndAnalysis() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const source = ss.getActiveSheet();
+
+  const lastRow = source.getLastRow();
+  const lastCol = source.getLastColumn();
+  if (lastRow < 2) return; // nothing to process
+
+  // 1) Find header positions
+  const headers = source.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  const hLower  = headers.map(h => (h || "").trim().toLowerCase());
+  const createdCol = hLower.findIndex(h => h === "created") + 1;
+  const dueCol     = hLower.findIndex(h => h === "due date" || h === "due") + 1;
+
+  if (!createdCol || !dueCol) {
+    throw new Error('Could not find "Created" and "Due Date" headers (case-insensitive).');
+  }
+
+  // 2) Read all data rows
+  const dataRange = source.getRange(2, 1, lastRow - 1, lastCol);
+  const values = dataRange.getValues(); // preserves Date objects when cells are date-formatted
+
+  // 3) Buckets
+  const normalRows = [];     // Due > Created
+  const bornRows = [];       // Due < Created
+  const analysisRows = [];   // missing/invalid/equal
+
+  for (let r = 0; r < values.length; r++) {
+    const row = values[r];
+    const createdVal = row[createdCol - 1];
+    const dueVal     = row[dueCol - 1];
+
+    const created = toDate_(createdVal);
+    const due     = toDate_(dueVal);
+
+    if (created && due) {
+      if (due.getTime() > created.getTime()) {
+        normalRows.push(row);
+      } else if (due.getTime() < created.getTime()) {
+        bornRows.push(row);
+      } else {
+        // Due == Created
+        analysisRows.push(row);
+      }
+    } else {
+      // one or both dates missing/invalid
+      analysisRows.push(row);
+    }
+  }
+
+  // 4) Prepare destination sheets
+  const normalSheet = getOrCreateAndClear_(ss, "Normal Vulnerability");
+  const bornSheet   = getOrCreateAndClear_(ss, "Born Overdue Vulnerability");
+  const analysisSh  = getOrCreateAndClear_(ss, "Analysis");
+
+  // Write headers
+  [normalSheet, bornSheet, analysisSh].forEach(sh => {
+    sh.getRange(1, 1, 1, lastCol).setValues([headers]);
+    sh.setFrozenRows(1);
+  });
+
+  // Write rows
+  if (normalRows.length) {
+    normalSheet.getRange(2, 1, normalRows.length, lastCol).setValues(normalRows);
+  }
+  if (bornRows.length) {
+    bornSheet.getRange(2, 1, bornRows.length, lastCol).setValues(bornRows);
+  }
+  if (analysisRows.length) {
+    analysisSh.getRange(2, 1, analysisRows.length, lastCol).setValues(analysisRows);
+  }
+}
+
+/* ---------- helpers ---------- */
+
+/**
+ * Convert a Sheets cell value to a real Date (or null if not parseable).
+ * Handles Date objects, Excel serial numbers, and common date strings.
+ */
+function toDate_(v) {
+  if (v instanceof Date && !isNaN(v)) return v;
+
+  // Handle Excel/Sheets date serials that may come through as numbers
+  if (typeof v === "number") {
+    // Excel/Sheets epoch offset (Excel epoch)
+    const ms = (v - 25569) * 24 * 60 * 60 * 1000;
+    const d = new Date(ms);
+    return isNaN(d) ? null : d;
+  }
+
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return null;
+    const d = new Date(s);
+    return isNaN(d) ? null : d;
+  }
+
+  return null;
+}
+
+/**
+ * Get or create a sheet by name and clear it.
+ */
+function getOrCreateAndClear_(ss, name) {
+  let sh = ss.getSheetByName(name);
+  if (!sh) sh = ss.insertSheet(name);
+  else sh.clear();
+  return sh;
+}
