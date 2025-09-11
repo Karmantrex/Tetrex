@@ -1,16 +1,19 @@
-function deleteCompletelyEmptyColumns() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+function deleteColumnsWithoutDataBelowHeader() {
+  const sheet = SpreadsheetApp.getActiveSheet();
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
+  if (lastRow < 2) return; // nothing below header anyway
 
-  // Loop backwards so deleting doesn’t mess up the indexes
+  // walk right-to-left so indexes don't shift
   for (let col = lastCol; col >= 1; col--) {
-    const range = sheet.getRange(1, col, lastRow); // entire column
-    const values = range.getValues().flat(); // flatten into a 1D array
-    const hasData = values.some(v => v !== "" && v !== null);
+    // get *display* values so formula "" counts as blank
+    const rng = sheet.getRange(2, col, lastRow - 1, 1);
+    const values = rng.getDisplayValues().map(r => (r[0] ?? "").trim());
 
-    if (!hasData) {
+    const allBlank = values.every(v => v === "");
+    if (allBlank) {
       sheet.deleteColumn(col);
     }
   }
+  SpreadsheetApp.flush();
 }
