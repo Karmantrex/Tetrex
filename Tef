@@ -1,5 +1,5 @@
-project in (IDS, AUTH)
-AND creator = SecureGuardians
+project in (, )
+AND creator = 
 AND created >= "2025-08-01" AND created <= "2025-08-31"
 AND summary ~ "\\[PAST DUE\\]"
 AND labels in ("Container", "Container-Inherited", "Infrastructure")
