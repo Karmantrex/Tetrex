@@ -1,1 +1,9 @@
-rg -n --no-ignore -S "Q|autoscaling|min_capacity|max_capacity|application_configuration" Q -g '!**/Q/**'
+project in (, )
+AND creator = 
+AND created >= "2025-08-01" AND created <= "2025-08-31"
+AND summary ~ "[PAST DUE]"
+AND statusCategory != Done
+AND status not in (Closed, "Ready for Acceptance")
+AND labels in ("Container", "Container-Inherited", "Infrastructure")
+AND comment ~ "Notified"
+ORDER BY labels, due
