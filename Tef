@@ -1,13 +1,11 @@
 /**
- * Collect rows where Resolved date is AFTER Due Date
- * and write them to a new sheet named "1x SLA".
- * 
- * Looks for headers:
- *   - "Due Date" (or "Due")
- *   - "Resolved" (or "Resolution date")
- * Matching is case-insensitive.
+ * Build a "1x SLA" sheet from the active sheet.
+ * 1x SLA = Created < Due Date AND Resolved > Due Date
+ * - Finds headers: "Created", "Resolved", "Due Date" (or "Due"), case-insensitive
+ * - Copies matching rows (all columns) to a sheet named "1x SLA"
+ * - Original sheet is left unchanged
  */
-function build1xSLA() {
+function buildOneXSLA() {
   const DEST_SHEET_NAME = "1x SLA";
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -15,60 +13,65 @@ function build1xSLA() {
 
   const lastRow = src.getLastRow();
   const lastCol = src.getLastColumn();
-  if (lastRow < 2) return; // nothing to process
+  if (lastRow < 2) return; // nothing to do
 
-  // Find header columns (case-insensitive)
+  // Locate header columns (row 1)
   const headers = src.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
-  const hLower  = headers.map(h => (h || '').trim().toLowerCase());
+  const hLower  = headers.map(h => (h || "").trim().toLowerCase());
 
-  const dueCol = hLower.findIndex(h =>
-      h === "due date" || h === "due") + 1;
-  const resolvedCol = hLower.findIndex(h =>
-      h === "resolved" || h === "resolution date") + 1;
+  const createdCol  = hLower.findIndex(h => h === "created") + 1;
+  const resolvedCol = hLower.findIndex(h => h === "resolved" || h === "resolution date") + 1;
+  const dueCol      = hLower.findIndex(h => h === "due date" || h === "due") + 1;
 
-  if (!dueCol || !resolvedCol) {
-    throw new Error('Could not find "Due Date"/"Due" and/or "Resolved"/"Resolution date" headers.');
+  if (!createdCol || !resolvedCol || !dueCol) {
+    throw new Error('Missing required headers: "Created", "Resolved", "Due Date" (case-insensitive).');
   }
 
   // Read all data rows
   const data = src.getRange(2, 1, lastRow - 1, lastCol).getValues();
 
-  // Filter rows where Resolved > Due
-  const slaRows = [];
-  for (let r = 0; r < data.length; r++) {
-    const row = data[r];
-    const due      = toDate_(row[dueCol - 1]);
+  // Collect 1x SLA rows
+  const oneXSLA = [];
+  for (let i = 0; i < data.length; i++) {
+    const row = data[i];
+
+    const created  = toDate_(row[createdCol  - 1]);
+    const due      = toDate_(row[dueCol      - 1]);
     const resolved = toDate_(row[resolvedCol - 1]);
 
-    if (due && resolved && resolved.getTime() > due.getTime()) {
-      slaRows.push(row);
+    // 1x SLA condition: Created < Due AND Resolved > Due
+    if (created && due && resolved && created.getTime() < due.getTime() && resolved.getTime() > due.getTime()) {
+      oneXSLA.push(row);
     }
   }
 
-  // Create/clear destination and write results
+  // Create/Clear destination sheet and write results (headers + rows)
   const dest = getOrCreateAndClear_(ss, DEST_SHEET_NAME);
   dest.getRange(1, 1, 1, lastCol).setValues([headers]);
   dest.setFrozenRows(1);
-  if (slaRows.length) {
-    dest.getRange(2, 1, slaRows.length, lastCol).setValues(slaRows);
+
+  if (oneXSLA.length) {
+    dest.getRange(2, 1, oneXSLA.length, lastCol).setValues(oneXSLA);
   }
 }
 
-/* ===== Helpers ===== */
+/* ---------- helpers ---------- */
 
+// Convert a cell value to a Date object or null if unparsable.
 function toDate_(v) {
   if (v instanceof Date && !isNaN(v)) return v;
 
-  if (typeof v === 'number') {
-    // Excel/Sheets serial number -> JS Date
+  if (typeof v === "number") {
+    // Excel/Sheets serial to JS Date
     const ms = (v - 25569) * 24 * 60 * 60 * 1000;
     const d = new Date(ms);
     return isNaN(d) ? null : d;
   }
 
-  if (typeof v === 'string') {
+  if (typeof v === "string") {
     const s = v.trim();
     if (!s) return null;
+    // Native parse handles formats like "14/Aug/25 12:00"
     const d = new Date(s);
     return isNaN(d) ? null : d;
   }
@@ -76,6 +79,7 @@ function toDate_(v) {
   return null;
 }
 
+// Get or create a sheet by name and clear it.
 function getOrCreateAndClear_(ss, name) {
   let sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
