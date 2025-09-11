@@ -1,6 +1,94 @@
-project in (, )
-AND creator = 
-AND created >= "2025-08-01" AND created <= "2025-08-31"
-AND summary ~ "\\[PAST DUE\\]"
-AND labels in ("Container", "Container-Inherited", "Infrastructure")
-ORDER BY labels, due
+/**
+ * Split rows into two sheets based on Due Date < Created.
+ * - Looks for headers "Created" and "Due Date" (case-insensitive).
+ * - Creates/clears two tabs:
+ *     - born_due_vulnerability (Due < Created)
+ *     - regular_vulnerability  (others, incl. blanks)
+ */
+function splitDueVsRegular() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const source = ss.getActiveSheet();
+
+  const lastRow = source.getLastRow();
+  const lastCol = source.getLastColumn();
+  if (lastRow < 2) return; // nothing to process
+
+  // 1) Find header positions
+  const headers = source.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  const hLower  = headers.map(h => (h || '').trim().toLowerCase());
+  const createdCol = hLower.findIndex(h => h === 'created') + 1;
+  const dueCol     = hLower.findIndex(h => h === 'due date' || h === 'due') + 1;
+
+  if (!createdCol || !dueCol) {
+    throw new Error('Could not find "Created" and "Due Date" headers (case-insensitive).');
+  }
+
+  // 2) Read all data rows
+  const dataRange = source.getRange(2, 1, lastRow - 1, lastCol);
+  const values = dataRange.getValues(); // keep Date objects when possible
+
+  // 3) Buckets
+  const bornDueRows = [];
+  const regularRows = [];
+
+  for (let r = 0; r < values.length; r++) {
+    const row = values[r];
+    const createdVal = row[createdCol - 1];
+    const dueVal     = row[dueCol - 1];
+
+    const created = toDate(createdVal);
+    const due     = toDate(dueVal);
+
+    // Rule: ONLY classify as "born due" if both dates are valid and due < created
+    const isBornDue = (created && due) ? (due.getTime() < created.getTime()) : false;
+
+    if (isBornDue) {
+      bornDueRows.push(row);
+    } else {
+      regularRows.push(row);
+    }
+  }
+
+  // 4) Prepare destination sheets
+  const bornSheet   = getOrCreateAndClear_(ss, 'born_due_vulnerability');
+  const regularSheet= getOrCreateAndClear_(ss, 'regular_vulnerability');
+
+  // Write headers
+  bornSheet.getRange(1, 1, 1, lastCol).setValues([headers]);
+  regularSheet.getRange(1, 1, 1, lastCol).setValues([headers]);
+
+  // Write rows (only if non-empty)
+  if (bornDueRows.length) {
+    bornSheet.getRange(2, 1, bornDueRows.length, lastCol).setValues(bornDueRows);
+  }
+  if (regularRows.length) {
+    regularSheet.getRange(2, 1, regularRows.length, lastCol).setValues(regularRows);
+  }
+
+  // Optional: freeze header row
+  bornSheet.setFrozenRows(1);
+  regularSheet.setFrozenRows(1);
+
+  // -------- helpers --------
+  function toDate(v) {
+    if (v instanceof Date && !isNaN(v)) return v;
+    if (typeof v === 'number') {
+      // Handle Excel serials if present
+      const ms = (v - 25569) * 24 * 60 * 60 * 1000;
+      const d = new Date(ms);
+      return isNaN(d) ? null : d;
+    }
+    if (typeof v === 'string') {
+      const d = new Date(v);
+      return isNaN(d) ? null : d;
+    }
+    return null;
+  }
+
+  function getOrCreateAndClear_(ss, name) {
+    let sh = ss.getSheetByName(name);
+    if (!sh) sh = ss.insertSheet(name);
+    else sh.clear();
+    return sh;
+  }
+}
