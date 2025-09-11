@@ -1,19 +1,10 @@
-function deleteColumnsWithoutDataBelowHeader() {
+function sortByTeamAZ() {
   const sheet = SpreadsheetApp.getActiveSheet();
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow < 2) return; // nothing below header anyway
+  if (lastRow < 2) return; // only header present, nothing to sort
 
-  // walk right-to-left so indexes don't shift
-  for (let col = lastCol; col >= 1; col--) {
-    // get *display* values so formula "" counts as blank
-    const rng = sheet.getRange(2, col, lastRow - 1, 1);
-    const values = rng.getDisplayValues().map(r => (r[0] ?? "").trim());
-
-    const allBlank = values.every(v => v === "");
-    if (allBlank) {
-      sheet.deleteColumn(col);
-    }
-  }
-  SpreadsheetApp.flush();
+  // Sort all data rows (2..lastRow) across all columns (A..lastCol) by column F
+  const dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
+  dataRange.sort([{ column: 6, ascending: true }]);  // column F = 6
 }
