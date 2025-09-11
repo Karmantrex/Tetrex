@@ -1,102 +1,72 @@
 /**
- * Split rows into three sheets:
- *  - "Normal Vulnerability"          : Due Date  > Created
- *  - "Born Overdue Vulnerability"    : Due Date  < Created
- *  - "Analysis"                      : anything else (blank/invalid/equal)
- *
- * Looks for headers "Created" and "Due Date" (case-insensitive).
+ * Collect rows where Resolved date is AFTER Due Date
+ * and write them to a new sheet named "1x SLA".
+ * 
+ * Looks for headers:
+ *   - "Due Date" (or "Due")
+ *   - "Resolved" (or "Resolution date")
+ * Matching is case-insensitive.
  */
-function splitNormalBornOverdueAndAnalysis() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const source = ss.getActiveSheet();
+function build1xSLA() {
+  const DEST_SHEET_NAME = "1x SLA";
 
-  const lastRow = source.getLastRow();
-  const lastCol = source.getLastColumn();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const src = ss.getActiveSheet();
+
+  const lastRow = src.getLastRow();
+  const lastCol = src.getLastColumn();
   if (lastRow < 2) return; // nothing to process
 
-  // 1) Find header positions
-  const headers = source.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
-  const hLower  = headers.map(h => (h || "").trim().toLowerCase());
-  const createdCol = hLower.findIndex(h => h === "created") + 1;
-  const dueCol     = hLower.findIndex(h => h === "due date" || h === "due") + 1;
+  // Find header columns (case-insensitive)
+  const headers = src.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  const hLower  = headers.map(h => (h || '').trim().toLowerCase());
 
-  if (!createdCol || !dueCol) {
-    throw new Error('Could not find "Created" and "Due Date" headers (case-insensitive).');
+  const dueCol = hLower.findIndex(h =>
+      h === "due date" || h === "due") + 1;
+  const resolvedCol = hLower.findIndex(h =>
+      h === "resolved" || h === "resolution date") + 1;
+
+  if (!dueCol || !resolvedCol) {
+    throw new Error('Could not find "Due Date"/"Due" and/or "Resolved"/"Resolution date" headers.');
   }
 
-  // 2) Read all data rows
-  const dataRange = source.getRange(2, 1, lastRow - 1, lastCol);
-  const values = dataRange.getValues(); // preserves Date objects when cells are date-formatted
+  // Read all data rows
+  const data = src.getRange(2, 1, lastRow - 1, lastCol).getValues();
 
-  // 3) Buckets
-  const normalRows = [];     // Due > Created
-  const bornRows = [];       // Due < Created
-  const analysisRows = [];   // missing/invalid/equal
+  // Filter rows where Resolved > Due
+  const slaRows = [];
+  for (let r = 0; r < data.length; r++) {
+    const row = data[r];
+    const due      = toDate_(row[dueCol - 1]);
+    const resolved = toDate_(row[resolvedCol - 1]);
 
-  for (let r = 0; r < values.length; r++) {
-    const row = values[r];
-    const createdVal = row[createdCol - 1];
-    const dueVal     = row[dueCol - 1];
-
-    const created = toDate_(createdVal);
-    const due     = toDate_(dueVal);
-
-    if (created && due) {
-      if (due.getTime() > created.getTime()) {
-        normalRows.push(row);
-      } else if (due.getTime() < created.getTime()) {
-        bornRows.push(row);
-      } else {
-        // Due == Created
-        analysisRows.push(row);
-      }
-    } else {
-      // one or both dates missing/invalid
-      analysisRows.push(row);
+    if (due && resolved && resolved.getTime() > due.getTime()) {
+      slaRows.push(row);
     }
   }
 
-  // 4) Prepare destination sheets
-  const normalSheet = getOrCreateAndClear_(ss, "Normal Vulnerability");
-  const bornSheet   = getOrCreateAndClear_(ss, "Born Overdue Vulnerability");
-  const analysisSh  = getOrCreateAndClear_(ss, "Analysis");
-
-  // Write headers
-  [normalSheet, bornSheet, analysisSh].forEach(sh => {
-    sh.getRange(1, 1, 1, lastCol).setValues([headers]);
-    sh.setFrozenRows(1);
-  });
-
-  // Write rows
-  if (normalRows.length) {
-    normalSheet.getRange(2, 1, normalRows.length, lastCol).setValues(normalRows);
-  }
-  if (bornRows.length) {
-    bornSheet.getRange(2, 1, bornRows.length, lastCol).setValues(bornRows);
-  }
-  if (analysisRows.length) {
-    analysisSh.getRange(2, 1, analysisRows.length, lastCol).setValues(analysisRows);
+  // Create/clear destination and write results
+  const dest = getOrCreateAndClear_(ss, DEST_SHEET_NAME);
+  dest.getRange(1, 1, 1, lastCol).setValues([headers]);
+  dest.setFrozenRows(1);
+  if (slaRows.length) {
+    dest.getRange(2, 1, slaRows.length, lastCol).setValues(slaRows);
   }
 }
 
-/* ---------- helpers ---------- */
+/* ===== Helpers ===== */
 
-/**
- * Convert a Sheets cell value to a real Date (or null if not parseable).
- * Handles Date objects, Excel serial numbers, and common date strings.
- */
 function toDate_(v) {
   if (v instanceof Date && !isNaN(v)) return v;
 
-  // Handle Excel/Sheets date serials that may come through as numbers
-  if (typeof v === "number") {
-    // Excel/Sheets epoch offset (Excel epoch)
+  if (typeof v === 'number') {
+    // Excel/Sheets serial number -> JS Date
     const ms = (v - 25569) * 24 * 60 * 60 * 1000;
     const d = new Date(ms);
     return isNaN(d) ? null : d;
   }
 
-  if (typeof v === "string") {
+  if (typeof v === 'string') {
     const s = v.trim();
     if (!s) return null;
     const d = new Date(s);
@@ -106,9 +76,6 @@ function toDate_(v) {
   return null;
 }
 
-/**
- * Get or create a sheet by name and clear it.
- */
 function getOrCreateAndClear_(ss, name) {
   let sh = ss.getSheetByName(name);
   if (!sh) sh = ss.insertSheet(name);
