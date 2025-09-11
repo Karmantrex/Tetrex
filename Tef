@@ -1,9 +1,23 @@
-project in (, )
-AND creator = 
-AND created >= "2025-08-01" AND created <= "2025-08-31"
-AND summary ~ "[PAST DUE]"
-AND statusCategory != Done
-AND status not in (Closed, "Ready for Acceptance")
-AND labels in ("Container", "Container-Inherited", "Infrastructure")
-AND comment ~ "Notified"
-ORDER BY labels, due
+function deleteEmptyColumns() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const range = sheet.getDataRange();
+  const values = range.getValues();
+  const numRows = values.length;
+  const numCols = values[0].length;
+
+  // Go from last column to first to avoid index shifting
+  for (let col = numCols - 1; col >= 0; col--) {
+    let isEmpty = true;
+    for (let row = 0; row < numRows; row++) {
+      if (values[row][col] !== "" && values[row][col] !== null) {
+        isEmpty = false;
+        break;
+      }
+    }
+    if (isEmpty) {
+      sheet.deleteColumn(col + 1); // +1 because Sheets uses 1-based indexing
+    }
+  }
+
+  SpreadsheetApp.flush(); // Optional but ensures all changes are applied
+}
