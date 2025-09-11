@@ -1,23 +1,16 @@
-function deleteEmptyColumns() {
+function deleteCompletelyEmptyColumns() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  const range = sheet.getDataRange();
-  const values = range.getValues();
-  const numRows = values.length;
-  const numCols = values[0].length;
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
 
-  // Go from last column to first to avoid index shifting
-  for (let col = numCols - 1; col >= 0; col--) {
-    let isEmpty = true;
-    for (let row = 0; row < numRows; row++) {
-      if (values[row][col] !== "" && values[row][col] !== null) {
-        isEmpty = false;
-        break;
-      }
-    }
-    if (isEmpty) {
-      sheet.deleteColumn(col + 1); // +1 because Sheets uses 1-based indexing
+  // Loop backwards so deleting doesn’t mess up the indexes
+  for (let col = lastCol; col >= 1; col--) {
+    const range = sheet.getRange(1, col, lastRow); // entire column
+    const values = range.getValues().flat(); // flatten into a 1D array
+    const hasData = values.some(v => v !== "" && v !== null);
+
+    if (!hasData) {
+      sheet.deleteColumn(col);
     }
   }
-
-  SpreadsheetApp.flush(); // Optional but ensures all changes are applied
 }
