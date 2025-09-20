@@ -1,0 +1,417 @@
+#!/bin/bash
+# =============================================================================
+# Focus Monitor Setup Script with Backup, Watchdog, and Cyclic/Indefinite Pause Logic
+#
+# This script implements the following features:
+#
+# 1) Password Setup & Lock:
+#    - On the first run (with no arguments), you'll be prompted to create a password.
+#    - Once set, it tells you to start the application using:
+#         ./setup_focus_monitor.sh start
+#
+# 2) Start Command ("start"):
+#    - Prompts for the password.
+#    - Sets the original password file to restrictive permissions (chmod 400).
+#    - Creates the monitoring script that checks every second if "Focus" and "FocusMe" are running.
+#      * If "Focus" is not running, it simulates launching it via Spotlight.
+#      * If "FocusMe" is not running, it opens Terminal to execute: open ~/Applications/FocusMe.app
+#      * The script uses two counters (one for Focus and one for FocusMe):
+#            - If either counter reaches 30 consecutive failures, a notification is shown and the script
+#              pauses indefinitely.
+#      * Otherwise, after 1200 iterations (~20 minutes), it pauses for 60 seconds.
+#
+#    - Creates a LaunchAgent plist (with LimitLoadToSessionType set to Aqua) so that the monitor runs at login.
+#    - Loads the LaunchAgent.
+#    - Locks this setup script (chmod 500) so it cannot be tampered with.
+#
+#    - --- Watchdog Setup ---
+#      - Creates a watchdog script in the same directory as the main script,
+#        with hardcoded paths and a function to restore missing files.
+#      - Sets its permissions.
+#      - Creates a watchdog LaunchAgent plist at
+#            $HOME/Library/LaunchAgents/com.$USER.watchdog.plist,
+#        also with the Aqua session restriction.
+#      - Loads the watchdog LaunchAgent.
+#
+#    - --- Backup Logic ---
+#      After all the above are completed, backs up the following files into the backup folder:
+#         * Main Script (setup_focus_monitor.sh)
+#         * Password File (.focus_monitor.pass)
+#         * Monitoring Script (focus_monitor.sh)
+#         * Primary LaunchAgent plist (com.$USER.focusmonitor.plist)
+#         * Watchdog Script (watchdog.sh)
+#         * Watchdog LaunchAgent plist (com.$USER.watchdog.plist)
+#      Each backup file is set with restrictive permissions (chmod 400).
+#
+#    - Finally, all key files (including backups) are locked with the immutable flag (chflags uchg).
+#
+# 3) Stop Command ("stop"):
+#    - Prompts for the password.
+#    - First removes the immutable flag from all key files (including backups), using dotglob to include hidden files.
+#    - Unloads both LaunchAgents.
+#    - Resets permissions as follows:
+#         * The main script and watchdog script are set to 755 (executable).
+#         * All other files are set to 644.
+#
+# =============================================================================
+
+# -------------------------------------------------------------------------
+# New Path Definitions – All files (except LaunchAgents) reside in the main script’s directory.
+# -------------------------------------------------------------------------
+MAIN_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SELF="$MAIN_SCRIPT_DIR/$(basename "$0")"
+PASSFILE="$MAIN_SCRIPT_DIR/.focus_monitor.pass"
+MONITOR_SCRIPT="$MAIN_SCRIPT_DIR/focus_monitor.sh"
+BACKUP_DIR="$MAIN_SCRIPT_DIR/focus_monitor_backup"
+WATCHDOG_SCRIPT="$MAIN_SCRIPT_DIR/watchdog.sh"
+
+# LaunchAgent directory remains standard
+LAUNCHAGENT_DIR="$HOME/Library/LaunchAgents"
+LAUNCHAGENT_PLIST="$LAUNCHAGENT_DIR/com.$USER.focusmonitor.plist"
+WATCHDOG_PLIST="$LAUNCHAGENT_DIR/com.$USER.watchdog.plist"
+
+# -------------------------------------------------------------------------
+# Function: verify_password
+# -------------------------------------------------------------------------
+verify_password() {
+    read -s -p "Enter password: " input_pass
+    echo
+    if [ ! -f "$PASSFILE" ]; then
+        echo "Password file not found. Exiting."
+        exit 1
+    fi
+    stored_hash=$(cat "$PASSFILE")
+    input_hash=$(echo -n "$input_pass" | shasum -a 256 | awk '{print $1}')
+    if [ "$input_hash" != "$stored_hash" ]; then
+        echo "Incorrect password. Exiting."
+        exit 1
+    fi
+}
+
+# -------------------------------------------------------------------------
+# Function: usage
+# -------------------------------------------------------------------------
+usage() {
+    echo "Usage: $0 [start|stop]"
+    exit 1
+}
+
+# -------------------------------------------------------------------------
+# Password Setup (when no arguments are provided)
+# -------------------------------------------------------------------------
+if [ "$#" -eq 0 ]; then
+    if [ ! -f "$PASSFILE" ]; then
+        echo "No password set. Let's set it up."
+        read -s -p "Enter new password: " pass1
+        echo
+        read -s -p "Re-enter new password: " pass2
+        echo
+        if [ "$pass1" != "$pass2" ]; then
+            echo "Passwords do not match. Exiting."
+            exit 1
+        fi
+        echo -n "$pass1" | shasum -a 256 | awk '{print $1}' > "$PASSFILE" || { echo "Failed to write password file."; exit 1; }
+        chmod 400 "$PASSFILE" || { echo "Failed to set permissions on password file."; exit 1; }
+        echo "Password setup complete. You can now start the application using: $0 start"
+        exit 0
+    else
+        echo "Password is already set. Use '$0 start' to launch or '$0 stop' to stop the monitor."
+        exit 1
+    fi
+fi
+
+# -------------------------------------------------------------------------
+# Main Command Handling: start and stop
+# -------------------------------------------------------------------------
+case "$1" in
+    start)
+        # --- Start Command ---
+        verify_password
+
+        # Ensure the password file is restricted
+        chmod 400 "$PASSFILE" || { echo "Failed to set permissions on password file."; exit 1; }
+
+        # 1. Create the backup directory (in the main script directory)
+        mkdir -p "$BACKUP_DIR" || { echo "Failed to create backup directory."; exit 1; }
+
+        # 2. Create the monitoring script (with new failure-count logic)
+cat << 'EOF' > "$MONITOR_SCRIPT"
+#!/bin/bash
+# ================================
+# Focus Monitor Script with Cyclic Pause and Indefinite Pause on Failure
+#
+# This script continuously monitors if "Focus" and "FocusMe" applications are running.
+# - If "Focus" is not running, it attempts to launch it via Spotlight.
+# - If "FocusMe" is not running, it opens Terminal to execute: open ~/Applications/FocusMe.app
+#
+# It uses two counters:
+#   focus_fail_count: consecutive checks where "Focus" is not running.
+#   focusme_fail_count: consecutive checks where "FocusMe" is not running.
+#
+# If either counter reaches 30, a notification is shown and the script pauses indefinitely.
+#
+# Otherwise, after 1200 iterations (~20 minutes), it pauses for 60 seconds.
+# ================================
+iteration_counter=0
+focus_fail_count=0
+focusme_fail_count=0
+while true; do
+    iteration_counter=$((iteration_counter + 1))
+    if ! pgrep -xi "focus" > /dev/null 2>&1; then
+        focus_fail_count=$((focus_fail_count + 1))
+        osascript <<ASCRIPT
+tell application "System Events"
+    key code 49 using {command down}
+    delay 0.5
+    keystroke "focus.app"
+    delay 0.5
+    key code 36
+end tell
+ASCRIPT
+    else
+        focus_fail_count=0
+    fi
+    if ! pgrep -xi "focusme" > /dev/null 2>&1; then
+        focusme_fail_count=$((focusme_fail_count + 1))
+        osascript <<ASCRIPT
+tell application "Terminal"
+    do script "open ~/Applications/FocusMe.app"
+    activate
+end tell
+ASCRIPT
+    else
+        focusme_fail_count=0
+    fi
+    if [ "$focus_fail_count" -ge 30 ]; then
+        osascript -e 'display notification "Focus has not started after 30 checks. Monitoring paused indefinitely." with title "Focus Monitor"'
+        while true; do sleep 60; done
+    fi
+    if [ "$focusme_fail_count" -ge 30 ]; then
+        osascript -e 'display notification "FocusMe has not started after 30 checks. Monitoring paused indefinitely." with title "Focus Monitor"'
+        while true; do sleep 60; done
+    fi
+    if [ "$iteration_counter" -ge 1200 ]; then
+        osascript -e 'display notification "Focus monitor is paused for 60 seconds" with title "Focus Monitor"'
+        sleep 60
+        iteration_counter=0
+    fi
+    sleep 1
+done
+EOF
+
+        if [ $? -ne 0 ]; then
+            echo "Failed to create monitoring script."
+            exit 1
+        fi
+
+        # 3. Set restrictive permissions on the monitoring script (chmod 500)
+        chmod 500 "$MONITOR_SCRIPT" || { echo "Failed to set permissions on monitoring script."; exit 1; }
+
+        # 4. Create the LaunchAgent plist for the monitoring script
+cat << EOF > "$LAUNCHAGENT_PLIST"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.$USER.focusmonitor</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>$MONITOR_SCRIPT</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+  </dict>
+</plist>
+EOF
+
+        if [ $? -ne 0 ]; then
+            echo "Failed to create LaunchAgent plist."
+            exit 1
+        fi
+
+        # 5. Set restrictive permissions on the monitoring LaunchAgent plist (chmod 400)
+        chmod 400 "$LAUNCHAGENT_PLIST" || { echo "Failed to set permissions on LaunchAgent plist."; exit 1; }
+
+        # 6. Load the monitoring LaunchAgent
+        launchctl load "$LAUNCHAGENT_PLIST" || { echo "Failed to load LaunchAgent."; exit 1; }
+
+        # 7. Lock the main script (chmod 500)
+        chmod 500 "$SELF" || { echo "Failed to lock setup script."; exit 1; }
+
+        # 8. --- Watchdog Setup ---
+        # Create the watchdog script in the same directory as the main script
+cat << EOF > "$WATCHDOG_SCRIPT"
+#!/bin/bash
+# ================================
+# Watchdog Script
+# ================================
+# Hardcoded paths based on the main script location
+MAIN_SCRIPT="$MAIN_SCRIPT_DIR/$(basename "$SELF")"
+SCRIPT_DIR="$MAIN_SCRIPT_DIR"
+MONITOR_SCRIPT="$MONITOR_SCRIPT"
+PASSFILE="$PASSFILE"
+LAUNCHAGENT_DIR="$LAUNCHAGENT_DIR"
+MONITOR_PLIST="$LAUNCHAGENT_PLIST"
+WATCHDOG_PLIST="$WATCHDOG_PLIST"
+WATCHDOG_SCRIPT="$WATCHDOG_SCRIPT"
+BACKUP_DIR="$BACKUP_DIR"
+check_and_restore() {
+    local original="\$1"
+    local backup="\$BACKUP_DIR/\$(basename "\$original")"
+    local perm="\$2"
+    if [ ! -f "\$original" ]; then
+        echo "\$(date): \$original missing, restoring from backup."
+        cp "\$backup" "\$original" 2>/dev/null || return 1
+        chmod "\$perm" "\$original" 2>/dev/null || return 1
+        if [[ "\$original" == *".plist" ]]; then
+            launchctl load "\$original" 2>/dev/null
+        fi
+    fi
+}
+while true; do
+    check_and_restore "\$MAIN_SCRIPT" "500"
+    check_and_restore "\$MONITOR_SCRIPT" "500"
+    check_and_restore "\$PASSFILE" "400"
+    check_and_restore "\$MONITOR_PLIST" "400"
+    check_and_restore "\$WATCHDOG_PLIST" "400"
+    check_and_restore "\$WATCHDOG_SCRIPT" "500"
+    sleep 10
+done
+EOF
+
+        if [ $? -ne 0 ]; then
+            echo "Failed to create watchdog script."
+            exit 1
+        fi
+
+        # 9. Set restrictive permissions on the watchdog script (chmod 500)
+        chmod 500 "$WATCHDOG_SCRIPT" || { echo "Failed to set permissions on watchdog script."; exit 1; }
+
+        # 10. Create the LaunchAgent plist for the watchdog
+cat << EOF > "$WATCHDOG_PLIST"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.$USER.watchdog</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>$WATCHDOG_SCRIPT</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>LimitLoadToSessionType</key>
+    <string>Aqua</string>
+  </dict>
+</plist>
+EOF
+
+        if [ $? -ne 0 ]; then
+            echo "Failed to create watchdog LaunchAgent plist."
+            exit 1
+        fi
+
+        # 11. Set restrictive permissions on the watchdog LaunchAgent plist (chmod 400)
+        chmod 400 "$WATCHDOG_PLIST" || { echo "Failed to set permissions on watchdog LaunchAgent plist."; exit 1; }
+
+        # 12. Load the watchdog LaunchAgent
+        launchctl load "$WATCHDOG_PLIST" || { echo "Failed to load watchdog LaunchAgent."; exit 1; }
+
+        # 13. --- Backup Logic (after watchdog setup) ---
+        # Backup main script
+        cp "$SELF" "$BACKUP_DIR/" || echo "Failed to backup main script."
+        chmod 400 "$BACKUP_DIR/$(basename "$SELF")" || echo "Failed to set permissions on backup of main script."
+        # Backup password file
+        if [ -f "$PASSFILE" ]; then
+            cp "$PASSFILE" "$BACKUP_DIR/" || echo "Failed to backup password file."
+            chmod 400 "$BACKUP_DIR/$(basename "$PASSFILE")" || echo "Failed to set permissions on backup of password file."
+        fi
+        # Backup monitoring script
+        if [ -f "$MONITOR_SCRIPT" ]; then
+            cp "$MONITOR_SCRIPT" "$BACKUP_DIR/" || echo "Failed to backup monitoring script."
+            chmod 400 "$BACKUP_DIR/$(basename "$MONITOR_SCRIPT")" || echo "Failed to set permissions on backup of monitoring script."
+        fi
+        # Backup primary LaunchAgent plist
+        if [ -f "$LAUNCHAGENT_PLIST" ]; then
+            cp "$LAUNCHAGENT_PLIST" "$BACKUP_DIR/" || echo "Failed to backup LaunchAgent plist."
+            chmod 400 "$BACKUP_DIR/$(basename "$LAUNCHAGENT_PLIST")" || echo "Failed to set permissions on backup of LaunchAgent plist."
+        fi
+        # Backup watchdog script
+        if [ -f "$WATCHDOG_SCRIPT" ]; then
+            cp "$WATCHDOG_SCRIPT" "$BACKUP_DIR/" || echo "Failed to backup watchdog script."
+            chmod 400 "$BACKUP_DIR/$(basename "$WATCHDOG_SCRIPT")" || echo "Failed to set permissions on backup of watchdog script."
+        fi
+        # Backup watchdog LaunchAgent plist
+        if [ -f "$WATCHDOG_PLIST" ]; then
+            cp "$WATCHDOG_PLIST" "$BACKUP_DIR/" || echo "Failed to backup watchdog LaunchAgent plist."
+            chmod 400 "$BACKUP_DIR/$(basename "$WATCHDOG_PLIST")" || echo "Failed to set permissions on backup of watchdog LaunchAgent plist."
+        fi
+
+        # 14. --- Set Immutable Flags ---
+        chflags uchg "$SELF" || echo "Failed to set immutable flag on main script."
+        chflags uchg "$PASSFILE" 2>/dev/null || echo "Failed to set immutable flag on password file."
+        chflags uchg "$MONITOR_SCRIPT" || echo "Failed to set immutable flag on monitoring script."
+        chflags uchg "$LAUNCHAGENT_PLIST" || echo "Failed to set immutable flag on LaunchAgent plist."
+        chflags uchg "$WATCHDOG_SCRIPT" || echo "Failed to set immutable flag on watchdog script."
+        chflags uchg "$WATCHDOG_PLIST" || echo "Failed to set immutable flag on watchdog LaunchAgent plist."
+        if [ -d "$BACKUP_DIR" ]; then
+            shopt -s dotglob
+            for file in "$BACKUP_DIR"/*; do
+                [ -f "$file" ] && chflags uchg "$file" || true
+            done
+            shopt -u dotglob
+        fi
+
+        echo "Focus monitor started."
+        ;;
+
+    stop)
+        verify_password
+
+        chflags nouchg "$SELF" "$PASSFILE" "$MONITOR_SCRIPT" "$LAUNCHAGENT_PLIST" "$WATCHDOG_SCRIPT" "$WATCHDOG_PLIST" 2>/dev/null
+        if [ -d "$BACKUP_DIR" ]; then
+            shopt -s dotglob
+            for file in "$BACKUP_DIR"/*; do
+                if [ -f "$file" ]; then
+                    chflags nouchg "$file" || echo "Failed to remove immutable flag on backup file $file."
+                fi
+            done
+            shopt -u dotglob
+        fi
+
+        launchctl unload "$LAUNCHAGENT_PLIST" || { echo "Failed to unload primary LaunchAgent."; exit 1; }
+        launchctl unload "$WATCHDOG_PLIST" || { echo "Failed to unload watchdog LaunchAgent."; exit 1; }
+
+        chmod 755 "$SELF" || { echo "Failed to set permissions on main script."; exit 1; }
+        [ -f "$PASSFILE" ] && chmod 644 "$PASSFILE" || true
+        [ -f "$MONITOR_SCRIPT" ] && chmod 644 "$MONITOR_SCRIPT" || true
+        [ -f "$LAUNCHAGENT_PLIST" ] && chmod 644 "$LAUNCHAGENT_PLIST" || true
+
+        [ -f "$WATCHDOG_SCRIPT" ] && chmod 755 "$WATCHDOG_SCRIPT" || true
+        [ -f "$WATCHDOG_PLIST" ] && chmod 644 "$WATCHDOG_PLIST" || true
+
+        if [ -d "$BACKUP_DIR" ]; then
+            shopt -s dotglob
+            for file in "$BACKUP_DIR"/*; do
+                if [ -f "$file" ]; then
+                    chmod 644 "$file" || echo "Failed to set permissions on backup file $file."
+                fi
+            done
+            shopt -u dotglob
+        fi
+
+        echo "Focus monitor stopped."
+        ;;
+
+    *)
+        usage
+        ;;
+esac
